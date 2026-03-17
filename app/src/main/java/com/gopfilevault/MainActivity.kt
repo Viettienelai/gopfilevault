@@ -28,7 +28,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // CHUYỂN LẠI THÀNH FALSE ĐỂ CHO PHÉP TÍNH TOÁN BÀN PHÍM THỦ CÔNG
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
         WindowInsetsControllerCompat(window, window.decorView).let { controller ->
             controller.hide(WindowInsetsCompat.Type.statusBars())
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -36,11 +38,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val pagerState = rememberPagerState(pageCount = { 2 })
                     val coroutineScope = rememberCoroutineScope()
-
-                    // ĐÃ ĐỔI TÊN TAB NGẮN GỌN THEO Ý BẠN
                     val tabs = listOf("DATA", "AI")
 
                     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {

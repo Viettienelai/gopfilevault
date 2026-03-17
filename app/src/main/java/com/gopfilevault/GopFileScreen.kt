@@ -11,22 +11,31 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 @Composable
 fun GopFileScreen(context: Context) {
     val coroutineScope = rememberCoroutineScope()
     val sharedPref = remember { context.getSharedPreferences("HimmelOS_Prefs", Context.MODE_PRIVATE) }
+
+    val clipboardManager = LocalClipboardManager.current
 
     var apiKey by remember { mutableStateOf(sharedPref.getString("API_KEY", "") ?: "") }
     var includeProperties by remember { mutableStateOf(sharedPref.getBoolean("INCLUDE_PROPS", false)) }
@@ -34,8 +43,12 @@ fun GopFileScreen(context: Context) {
 
     var sourceFolderUris by remember {
         val savedUris = sharedPref.getStringSet("SOURCE_URIS", emptySet()) ?: emptySet()
-        mutableStateOf(savedUris.map { Uri.parse(it) })
+        val sortedUris = savedUris.map { Uri.parse(it) }.sortedBy {
+            DocumentFile.fromTreeUri(context, it)?.name?.lowercase() ?: ""
+        }
+        mutableStateOf(sortedUris)
     }
+
     var destinationFileUri by remember {
         val savedUri = sharedPref.getString("DEST_URI", null)
         mutableStateOf(savedUri?.let { Uri.parse(it) })
@@ -52,8 +65,11 @@ fun GopFileScreen(context: Context) {
         if (uri != null && !sourceFolderUris.contains(uri)) {
             try {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                sourceFolderUris = sourceFolderUris + uri
-                sharedPref.edit().putStringSet("SOURCE_URIS", sourceFolderUris.map { it.toString() }.toSet()).apply()
+                val updatedUris = (sourceFolderUris + uri).sortedBy {
+                    DocumentFile.fromTreeUri(context, it)?.name?.lowercase() ?: ""
+                }
+                sourceFolderUris = updatedUris
+                sharedPref.edit().putStringSet("SOURCE_URIS", updatedUris.map { it.toString() }.toSet()).apply()
                 statusMessage = "Đã lưu thư mục mới."
             } catch (e: Exception) { statusMessage = "Lỗi cấp quyền: ${e.message}" }
         }
@@ -99,16 +115,51 @@ fun GopFileScreen(context: Context) {
             }
         }
 
-        // TÊN FILE ĐÃ ĐƯỢC CHÈN THẲNG VÀO TRONG BUTTON
-        Button(onClick = { filePickerLauncher.launch(arrayOf("text/plain")) }, modifier = Modifier.fillMaxWidth(), colors = defaultButtonColors) {
-            val btnText = if (destinationFileUri == null) {
-                "Chọn File .txt Đích"
-            } else {
-                val fileName = DocumentFile.fromSingleUri(context, destinationFileUri!!)?.name ?: "Unknown"
-                "Lưu vào: $fileName"
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Button(
+                onClick = { filePickerLauncher.launch(arrayOf("text/plain")) },
+                modifier = Modifier.weight(1f).height(50.dp),
+                colors = defaultButtonColors
+            ) {
+                val btnText = if (destinationFileUri == null) {
+                    "Chọn File .txt Đích"
+                } else {
+                    val fileName = DocumentFile.fromSingleUri(context, destinationFileUri!!)?.name ?: "Unknown"
+                    "Lưu vào: $fileName"
+                }
+                Text(btnText, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(btnText)
+
+            if (destinationFileUri != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                FilledIconButton(
+                    onClick = {
+                        val promptText = "dựa vào thông tin sau để suy ngẫm, liên kết, và trả lời câu hỏi sau:\n"
+
+                        // 1. Chỉ truyền File Stream vào Intent (Đã xóa putExtra text)
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_STREAM, destinationFileUri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+
+                        // 2. Kích hoạt bảng Share ngay lập tức
+                        context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ file lên Gemini"))
+
+                        // 3. Đợi 1000ms cho bảng Share mở xong rồi mới gọi Clipboard để tránh kẹt UI
+                        coroutineScope.launch {
+                            delay(1000)
+                            clipboardManager.setText(AnnotatedString(promptText))
+                        }
+                    },
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = btnContainerColor, contentColor = btnContentColor),
+                    modifier = Modifier.size(50.dp)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = "Chia sẻ")
+                }
+            }
         }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(modifier = Modifier.fillMaxWidth().clickable { includeProperties = !includeProperties; sharedPref.edit().putBoolean("INCLUDE_PROPS", includeProperties).apply() }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -165,10 +216,31 @@ suspend fun processMultipleFolders(context: Context, sourceUris: List<Uri>, dest
                 }
             }
 
+            val mergedText = resolver.openInputStream(destUri)?.bufferedReader()?.use { it.readText() } ?: ""
+
+            val historyDir = File(context.filesDir, "merged_history")
+            if (!historyDir.exists()) historyDir.mkdirs()
+
+            val timestamp = System.currentTimeMillis()
+            val generatedName = sourceUris.mapNotNull { uri ->
+                DocumentFile.fromTreeUri(context, uri)?.name?.take(2)
+            }.joinToString("+") + ".txt"
+
+            val internalFile = File(historyDir, "${generatedName}_$timestamp.txt")
+            internalFile.writeText(mergedText)
+            val internalUri = Uri.fromFile(internalFile).toString()
+
+            val removedUris = ChatManager.saveMergedHistory(context, internalUri, generatedName, timestamp)
+            removedUris.forEach { uriString ->
+                try {
+                    val file = File(Uri.parse(uriString).path!!)
+                    if (file.exists()) file.delete()
+                } catch (e: Exception) {}
+            }
+
             if (apiKey.isNotBlank()) {
                 onProgressUpdate("BƯỚC 2: Đang gọi Gemini API đếm token...")
                 try {
-                    val mergedText = resolver.openInputStream(destUri)?.bufferedReader()?.use { it.readText() } ?: ""
                     val generativeModel = com.google.ai.client.generativeai.GenerativeModel(modelName = "gemini-3.1-flash-lite-preview", apiKey = apiKey)
                     val exactTokens = generativeModel.countTokens(mergedText).totalTokens
                     return@withContext "THÀNH CÔNG!\nĐã ghi đè vào file đích: $totalFileCount tài liệu.\nToken CHÍNH XÁC: ${String.format("%,d", exactTokens)} Tokens."
