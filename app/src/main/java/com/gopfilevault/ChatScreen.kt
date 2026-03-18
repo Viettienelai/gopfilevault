@@ -36,7 +36,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,9 +53,8 @@ import java.util.Date
 import java.util.Locale
 
 val BgWhite = Color(0xFFFFFFFF)
-val ChatUserBg = Color(0xFFE9EEF6)
-val BtnBg = Color(0xFFDAE1FF)
-val BtnText = Color(0xFF003FA4)
+val BgTransparent = Color.Transparent
+val ChatUserBg = Color(0xFFD2E4FF)
 val InlineCodeBgColor = Color(0xFFFFF1F2)
 val InlineCodeTextColor = Color(0xFFE11D48)
 
@@ -138,8 +137,8 @@ fun ChatScreen(context: Context) {
     }
 
     if (apiKey.isBlank() || destUriString == null) {
-        Box(modifier = Modifier.fillMaxSize().background(BgWhite), contentAlignment = Alignment.Center) {
-            Text("Vui lòng thiết lập API Key và File Đích ở tab DATA trước!", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(32.dp))
+        Box(modifier = Modifier.fillMaxSize().background(BgTransparent), contentAlignment = Alignment.Center) {
+            Text("Please setup API Key & Target File in DATA tab!", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(32.dp))
         }
         return
     }
@@ -147,7 +146,7 @@ fun ChatScreen(context: Context) {
     if (showRenameDialog) {
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Đổi tên đoạn chat", fontWeight = FontWeight.Bold, color = BtnText) },
+            title = { Text("Rename chat", fontWeight = FontWeight.Bold, color = Color(0xFF003FA4)) },
             text = {
                 OutlinedTextField(
                     value = newTitleName,
@@ -163,9 +162,9 @@ fun ChatScreen(context: Context) {
                     allSessions = updatedSessions
                     ChatManager.saveSessions(context, updatedSessions)
                     showRenameDialog = false
-                }) { Text("Lưu", color = BtnText, fontWeight = FontWeight.Bold) }
+                }) { Text("Save", color = Color(0xFF003FA4), fontWeight = FontWeight.Bold) }
             },
-            dismissButton = { TextButton(onClick = { showRenameDialog = false }) { Text("Hủy", color = Color.Gray) } }
+            dismissButton = { TextButton(onClick = { showRenameDialog = false }) { Text("Cancel", color = Color.Gray) } }
         )
     }
 
@@ -173,18 +172,28 @@ fun ChatScreen(context: Context) {
         ModalNavigationDrawer(
             drawerState = drawerState, gesturesEnabled = drawerState.isOpen,
             drawerContent = {
-                ModalDrawerSheet(drawerShape = RectangleShape, drawerContainerColor = BgWhite, modifier = Modifier.width(300.dp)) {
-                    Text("Lịch sử trò chuyện", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = BtnText, modifier = Modifier.padding(16.dp))
+                ModalDrawerSheet(drawerShape = RectangleShape, drawerContainerColor = Color(0xFFF0F4F9), modifier = Modifier.width(300.dp)) {
+                    Text("History", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B1C1D), modifier = Modifier.padding(16.dp))
                     HorizontalDivider(color = Color.LightGray)
 
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         itemsIndexed(allSessions) { _, session ->
                             NavigationDrawerItem(
-                                label = { Text(session.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                label = {
+                                    Text(session.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
+                                },
                                 selected = session.id == currentSessionId,
                                 onClick = { currentSessionId = session.id; coroutineScope.launch { drawerState.close() } },
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                colors = NavigationDrawerItemDefaults.colors(selectedContainerColor = BtnBg, unselectedContainerColor = Color.Transparent, selectedTextColor = BtnText, unselectedTextColor = Color.Black)
+                                // ĐÃ SỬA: Ép cứng height xuống 40.dp và giảm padding dọc
+                                modifier = Modifier
+                                    .padding(horizontal = 12.dp, vertical = 2.dp)
+                                    .height(40.dp),
+                                colors = NavigationDrawerItemDefaults.colors(
+                                    selectedContainerColor = Color(0xFFD3E3FD),
+                                    unselectedContainerColor = Color.Transparent,
+                                    selectedTextColor = Color(0xFF0842A0),
+                                    unselectedTextColor = Color.Black
+                                )
                             )
                         }
                     }
@@ -192,10 +201,11 @@ fun ChatScreen(context: Context) {
             }
         ) {
             Scaffold(
+                containerColor = BgTransparent,
                 topBar = {
                     TopAppBar(
-                        title = { Text(currentSession.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        navigationIcon = { IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) { Icon(Icons.Default.Menu, "Menu", tint = BtnText) } },
+                        title = { Text(currentSession.title, color = Color(0xFF1B1C1D), fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        navigationIcon = { IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) { Icon(Icons.Default.Menu, "Menu", tint = Color(0xFF404753)) } },
                         actions = {
                             IconButton(onClick = {
                                 val newSession = ChatSession()
@@ -203,17 +213,22 @@ fun ChatScreen(context: Context) {
                                 allSessions = updatedSessions
                                 currentSessionId = newSession.id
                                 ChatManager.saveSessions(context, updatedSessions)
-                            }) { Icon(Icons.Default.AddComment, "New Chat", tint = BtnText) }
+                            }) {
+                                // ĐÃ TRẢ VỀ ICON AddComment (tạo chat mới)
+                                Icon(Icons.Default.AddComment, "New Chat", tint = Color(0xFF404753))
+                            }
 
-                            IconButton(onClick = { showTopMenu = true }) { Icon(Icons.Default.MoreVert, "More", tint = BtnText) }
+                            IconButton(onClick = { showTopMenu = true }) { Icon(Icons.Default.MoreVert, "More", tint = Color(0xFF404753)) }
 
                             DropdownMenu(expanded = showTopMenu, onDismissRequest = { showTopMenu = false }, containerColor = BgWhite) {
                                 DropdownMenuItem(
-                                    text = { Text("Đổi tên") }, leadingIcon = { Icon(Icons.Default.Edit, null, tint = Color.Gray) },
+                                    text = { Text("Rename", color = Color(0xFFFBBC05)) },
+                                    leadingIcon = { Icon(Icons.Default.Edit, null, tint = Color(0xFFFBBC05)) },
                                     onClick = { newTitleName = currentSession.title; showRenameDialog = true; showTopMenu = false }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Xóa đoạn chat", color = Color.Red) }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) },
+                                    text = { Text("Delete chat", color = Color(0xFFEA4335)) },
+                                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color(0xFFEA4335)) },
                                     onClick = {
                                         showTopMenu = false
                                         val updatedSessions = allSessions.filter { it.id != currentSessionId }.toMutableList()
@@ -225,13 +240,13 @@ fun ChatScreen(context: Context) {
                                 )
                             }
                         },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = BgWhite)
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = BgTransparent)
                     )
                 }
             ) { paddingValues ->
                 Column(modifier = Modifier
                     .fillMaxSize()
-                    .background(BgWhite)
+                    .background(BgTransparent)
                     .padding(paddingValues)
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
@@ -268,18 +283,16 @@ fun ChatScreen(context: Context) {
                                         Box(modifier = Modifier.padding(bottom = 8.dp).size(26.dp), contentAlignment = Alignment.Center) {
                                             Icon(painterResource(R.drawable.ic_gemini_spark), null, tint = Color.Unspecified, modifier = Modifier.size(24.dp).rotate(rot))
                                         }
-                                        Text("Himmel đang trích xuất...", color = BtnText, fontSize = 15.sp, modifier = Modifier.padding(start = 12.dp, top = 2.dp))
+                                        Text("Himmel is thinking...", color = Color(0xFF003FA4), fontSize = 15.sp, modifier = Modifier.padding(start = 12.dp, top = 2.dp))
                                     }
                                 }
                             }
                         }
-                        Box(modifier = Modifier.fillMaxWidth().height(40.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent, BgWhite))))
+                        Box(modifier = Modifier.fillMaxWidth().height(40.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xFFF8F9FF)))))
                     }
 
                     Column(modifier = Modifier
                         .fillMaxWidth()
-                        // ĐIỀU CHỈNH: Ép buộc sử dụng tween(300) cho cả khi co và giãn
-                        .animateContentSize(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing))
                         .padding(start = 16.dp, end = 16.dp, bottom = 12.dp, top = 4.dp)
                     ) {
 
@@ -290,18 +303,18 @@ fun ChatScreen(context: Context) {
                                         modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(ChatUserBg).padding(horizontal = 12.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(if (att.isImage) Icons.Default.Image else Icons.Default.InsertDriveFile, null, tint = BtnText, modifier = Modifier.size(16.dp))
+                                        Icon(if (att.isImage) Icons.Default.Image else Icons.Default.InsertDriveFile, null, tint = Color(0xFF003FA4), modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(att.name, fontSize = 12.sp, color = BtnText, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 100.dp))
+                                        Text(att.name, fontSize = 12.sp, color = Color(0xFF003FA4), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 100.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Icon(Icons.Default.Close, "Xóa", tint = Color.Gray, modifier = Modifier.size(16.dp).clickable { pendingAttachments = pendingAttachments.filter { it != att } })
+                                        Icon(Icons.Default.Close, "Remove", tint = Color.Gray, modifier = Modifier.size(16.dp).clickable { pendingAttachments = pendingAttachments.filter { it != att } })
                                     }
                                 }
                             }
                         }
 
                         Text(
-                            text = if (isCountingTokens) "Đang tính token..." else if (currentTokenCount > 0) "Token yêu cầu: ~${String.format("%,d", currentTokenCount)}" else "",
+                            text = if (isCountingTokens) "Calculating tokens..." else if (currentTokenCount > 0) "Tokens req: ~${String.format("%,d", currentTokenCount)}" else "",
                             fontSize = 11.sp,
                             color = Color.Gray,
                             modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
@@ -311,19 +324,20 @@ fun ChatScreen(context: Context) {
                             OutlinedTextField(
                                 value = inputText,
                                 onValueChange = { inputText = it },
-                                // ĐIỀU CHỈNH: Gắn animationSpec chuẩn cho ô Text
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .animateContentSize(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)),
-                                placeholder = { Text("Hỏi về kiến thức trong Vault...", fontSize = 15.sp) },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("Ask in Obsidian's vault", fontSize = 15.sp, color = Color(0xFF707884)) },
                                 enabled = !isThinking,
                                 maxLines = 5,
                                 shape = RoundedCornerShape(30.dp),
                                 leadingIcon = { Spacer(modifier = Modifier.size(48.dp)) },
                                 trailingIcon = { Spacer(modifier = Modifier.size(48.dp)) },
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = BgWhite, unfocusedContainerColor = BgWhite, disabledContainerColor = BgWhite,
-                                    focusedBorderColor = BtnBg, unfocusedBorderColor = Color.LightGray, disabledBorderColor = Color.LightGray
+                                    focusedContainerColor = Color(0xFFE9EEFA),
+                                    unfocusedContainerColor = Color(0xFFE9EEFA),
+                                    disabledContainerColor = Color(0xFFE9EEFA),
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    disabledBorderColor = Color.Transparent
                                 )
                             )
 
@@ -334,12 +348,15 @@ fun ChatScreen(context: Context) {
                                     .size(44.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                IconButton(onClick = { showAttachmentSheet = true; focusManager.clearFocus() }) { Icon(Icons.Default.AddCircle, "Thêm file", tint = BtnBg, modifier = Modifier.size(32.dp)) }
+                                IconButton(onClick = { showAttachmentSheet = true; focusManager.clearFocus() }) {
+                                    Icon(Icons.Default.Add, "Attach file", tint = Color(0xFF404753), modifier = Modifier.size(30.dp))
+                                }
                             }
 
                             val isSendEnabled = !isThinking && inputText.isNotBlank()
+
                             Box(
-                                modifier = Modifier.padding(end = 8.dp, bottom = 8.dp).size(38.dp).background(if (isSendEnabled) BtnBg else Color.Transparent, CircleShape)
+                                modifier = Modifier.padding(end = 8.dp, bottom = 8.dp).size(38.dp).background(if (isSendEnabled) Color(0xFFD2E4FF) else Color.Transparent, CircleShape)
                                     .clickable(
                                         enabled = isSendEnabled,
                                         onClick = {
@@ -386,14 +403,13 @@ fun ChatScreen(context: Context) {
                                         }
                                     ),
                                 contentAlignment = Alignment.Center
-                            ) { Icon(Icons.Default.Send, "Gửi", tint = if (isSendEnabled) BtnText else Color.LightGray, modifier = Modifier.size(18.dp).offset(x = 1.dp)) }
+                            ) { Icon(Icons.Default.Send, "Send", tint = if (isSendEnabled) Color(0xFF004880) else Color.LightGray, modifier = Modifier.size(18.dp).offset(x = 1.dp)) }
                         }
                     }
                 }
             }
         }
 
-        // CUSTOM BOTTOM SHEET
         AnimatedVisibility(
             visible = showAttachmentSheet,
             enter = fadeIn(tween(300)),
@@ -418,30 +434,28 @@ fun ChatScreen(context: Context) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .background(BgWhite)
+                    .background(Color(0xFFEFF4FF))
                     .clickable(enabled = false) {}
                     .padding(bottom = 32.dp, top = 8.dp)
             ) {
                 Box(modifier = Modifier.align(Alignment.CenterHorizontally).width(40.dp).height(4.dp).background(Color.LightGray, CircleShape))
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Đính kèm file", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { filePickerLauncher.launch(arrayOf("*/*")) }.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.size(40.dp).background(BtnBg, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.FolderOpen, null, tint = BtnText) }
+                    Box(modifier = Modifier.size(40.dp).background(Color(0xFFDAE1FF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.FolderOpen, null, tint = Color(0xFF003FA4)) }
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text("Nhập file từ điện thoại", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text("Select from device", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color(0xFF161C24))
                 }
 
                 HorizontalDivider(color = Color.LightGray, modifier = Modifier.padding(vertical = 8.dp))
-                Text("Lịch sử 5 file gộp gần nhất", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                Text("Recent merged files", fontSize = 14.sp, color = Color(0xFF161C24), modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 
                 val historyFiles = ChatManager.getMergedHistory(context)
                 if (historyFiles.isEmpty()) {
-                    Text("Chưa có file lịch sử nào.", modifier = Modifier.padding(start = 16.dp), color = Color.Gray)
+                    Text("No history yet.", modifier = Modifier.padding(start = 16.dp), color = Color.Gray)
                 } else {
                     historyFiles.forEach { file ->
                         Row(
@@ -451,13 +465,13 @@ fun ChatScreen(context: Context) {
                             }.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Description, null, tint = Color.Gray, modifier = Modifier.size(24.dp))
+                            Icon(Icons.Default.Description, null, tint = Color(0xFF4285F4), modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
 
-                            Text(file.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                            Text(file.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF161C24), modifier = Modifier.weight(1f))
 
                             val timeStr = if (file.time > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(file.time)) else ""
-                            Text(timeStr, fontSize = 12.sp, color = Color.Gray)
+                            Text(timeStr, fontSize = 12.sp, color = Color(0xFF161C24).copy(alpha = 0.7f))
                         }
                     }
                 }
@@ -482,7 +496,7 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
 
             Column(horizontalAlignment = Alignment.End) {
                 Box(
-                    modifier = Modifier.background(ChatUserBg, RoundedCornerShape(24.dp, 24.dp, 24.dp, 6.dp))
+                    modifier = Modifier.background(ChatUserBg, RoundedCornerShape(topStart = 24.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp))
                         .pointerInput(Unit) { detectTapGestures(onLongPress = { showMenu = true }) }
                         .widthIn(max = 300.dp).animateContentSize()
                 ) {
@@ -497,12 +511,26 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
                             modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp).shadow(3.dp, CircleShape)
                                 .background(Color.White, CircleShape).clickable { isExpanded = !isExpanded }.size(30.dp),
                             contentAlignment = Alignment.Center
-                        ) { Icon(if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, "Mở rộng", tint = BtnText, modifier = Modifier.size(20.dp)) }
+                        ) { Icon(if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, "Expand", tint = Color(0xFF003FA4), modifier = Modifier.size(20.dp)) }
                     }
 
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = BgWhite) {
-                        DropdownMenuItem(text = { Text("Copy", fontSize = 14.sp) }, leadingIcon = { Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(20.dp)) }, onClick = { clipboardManager.setText(AnnotatedString(message.text)); showMenu = false })
-                        DropdownMenuItem(text = { Text("Xóa", color = Color.Red, fontSize = 14.sp) }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(20.dp)) }, onClick = { onDelete(); showMenu = false })
+                        DropdownMenuItem(
+                            text = { Text("Copy", fontSize = 14.sp) },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(20.dp)) },
+                            onClick = {
+                                clipboardManager.setText(buildAnnotatedString { append(message.text) })
+                                showMenu = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete", color = Color.Red, fontSize = 14.sp) },
+                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(20.dp)) },
+                            onClick = {
+                                onDelete()
+                                showMenu = false
+                            }
+                        )
                     }
                 }
 
@@ -517,8 +545,8 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
             }
 
         } else {
-            Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                Box(modifier = Modifier.padding(bottom = 8.dp).size(26.dp), contentAlignment = Alignment.Center) {
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 0.dp)) {
+                Box(modifier = Modifier.padding(bottom = 4.dp).size(26.dp), contentAlignment = Alignment.Center) {
                     Icon(painterResource(R.drawable.ic_gemini_spark), null, tint = Color.Unspecified, modifier = Modifier.size(24.dp))
                 }
                 Markdown(
@@ -532,7 +560,10 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
                         h3 = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 28.sp)
                     )
                 )
-                IconButton(onClick = { clipboardManager.setText(AnnotatedString(message.text)) }, modifier = Modifier.padding(top = 8.dp).size(30.dp)) {
+                IconButton(
+                    onClick = { clipboardManager.setText(buildAnnotatedString { append(message.text) }) },
+                    modifier = Modifier.padding(top = 8.dp).size(30.dp)
+                ) {
                     Icon(Icons.Default.ContentCopy, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
                 }
             }

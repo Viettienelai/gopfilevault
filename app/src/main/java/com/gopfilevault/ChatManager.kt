@@ -12,7 +12,6 @@ data class Attachment(
     val time: Long = 0L
 )
 
-// THÊM: Biến tokenCount để lưu số token đã dùng cho request này
 data class ChatMessage(
     val text: String,
     val isUser: Boolean,
@@ -22,7 +21,7 @@ data class ChatMessage(
 
 data class ChatSession(
     val id: String = UUID.randomUUID().toString(),
-    var title: String = "Đoạn chat mới",
+    var title: String = "New Chat", // ĐÃ ĐỔI SANG TIẾNG ANH
     var messages: List<ChatMessage> = emptyList()
 )
 
@@ -45,7 +44,7 @@ object ChatManager {
                 val msgObj = JSONObject()
                 msgObj.put("text", msg.text)
                 msgObj.put("isUser", msg.isUser)
-                msgObj.put("tokenCount", msg.tokenCount) // LƯU TOKEN
+                msgObj.put("tokenCount", msg.tokenCount)
 
                 val attachArray = JSONArray()
                 msg.attachments.forEach { att ->
@@ -95,7 +94,7 @@ object ChatManager {
                             msgObj.getString("text"),
                             msgObj.getBoolean("isUser"),
                             attachments,
-                            msgObj.optInt("tokenCount", 0) // ĐỌC TOKEN
+                            msgObj.optInt("tokenCount", 0)
                         )
                     )
                 }
