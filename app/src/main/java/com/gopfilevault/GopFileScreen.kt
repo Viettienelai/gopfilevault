@@ -19,6 +19,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -63,9 +64,10 @@ import java.io.File
 
 @Composable
 fun GopFileScreen(context: Context) {
+    val isDark = isSystemInDarkTheme() // Gọi hàm lấy trạng thái DarkMode
+
     val coroutineScope = rememberCoroutineScope()
     val sharedPref = remember { context.getSharedPreferences("HimmelOS_Prefs", Context.MODE_PRIVATE) }
-
     val clipboardManager = LocalClipboardManager.current
 
     var apiKey by remember { mutableStateOf(sharedPref.getString("API_KEY", "") ?: "") }
@@ -76,9 +78,7 @@ fun GopFileScreen(context: Context) {
 
     var sourceFolderUris by remember {
         val savedUris = sharedPref.getStringSet("SOURCE_URIS", emptySet()) ?: emptySet()
-        val sortedUris = savedUris.map { Uri.parse(it) }.sortedBy {
-            DocumentFile.fromTreeUri(context, it)?.name?.lowercase() ?: ""
-        }
+        val sortedUris = savedUris.map { Uri.parse(it) }.sortedBy { DocumentFile.fromTreeUri(context, it)?.name?.lowercase() ?: "" }
         mutableStateOf(sortedUris)
     }
 
@@ -91,21 +91,13 @@ fun GopFileScreen(context: Context) {
     var isProcessing by remember { mutableStateOf(false) }
 
     var showAdvancedOptions by remember { mutableStateOf(false) }
-    val advancedRotationAngle by animateFloatAsState(
-        targetValue = if (showAdvancedOptions) 180f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "Advanced Arrow Rotation"
-    )
-
-    val defaultButtonColors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD2E4FF), contentColor = Color(0xFF004880))
+    val advancedRotationAngle by animateFloatAsState(targetValue = if (showAdvancedOptions) 180f else 0f, animationSpec = spring(stiffness = Spring.StiffnessMedium), label = "")
 
     val folderPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null && !sourceFolderUris.contains(uri)) {
             try {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                val updatedUris = (sourceFolderUris + uri).sortedBy {
-                    DocumentFile.fromTreeUri(context, it)?.name?.lowercase() ?: ""
-                }
+                val updatedUris = (sourceFolderUris + uri).sortedBy { DocumentFile.fromTreeUri(context, it)?.name?.lowercase() ?: "" }
                 sourceFolderUris = updatedUris
                 sharedPref.edit().putStringSet("SOURCE_URIS", updatedUris.map { it.toString() }.toSet()).apply()
             } catch (e: Exception) { statusMessage = "Permission error: ${e.message}" }
@@ -124,68 +116,43 @@ fun GopFileScreen(context: Context) {
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
 
-        // --- SOURCE FOLDERS MENU (HAMBURGER STYLE) ---
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            val headerShape = if (sourceFolderUris.isEmpty()) {
-                RoundedCornerShape(16.dp)
-            } else {
-                RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-            }
+        // --- SOURCE FOLDERS MENU ---
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            val headerShape = if (sourceFolderUris.isEmpty()) RoundedCornerShape(16.dp) else RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFE9EEFA), headerShape)
+                modifier = Modifier.fillMaxWidth()
+                    .background(if (isDark) Color(0xFF3B4665) else Color(0xFFDAE2FF), headerShape)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Source folders (${sourceFolderUris.size})",
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF161C24),
-                    modifier = Modifier.weight(1f)
+                    text = "Source folders (${sourceFolderUris.size})", fontWeight = FontWeight.Medium,
+                    color = if (isDark) Color(0xFFDAE2FF) else Color(0xFF3B4665), modifier = Modifier.weight(1f)
                 )
-                IconButton(
-                    onClick = { folderPickerLauncher.launch(null) },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Folder", tint = Color(0xFF161C24))
+                IconButton(onClick = { folderPickerLauncher.launch(null) }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Add, "Add Folder", tint = if (isDark) Color(0xFFDAE2FF) else Color(0xFF3B4665))
                 }
             }
 
             sourceFolderUris.forEachIndexed { index, uri ->
-                val itemShape = if (index == sourceFolderUris.lastIndex) {
-                    RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-                } else {
-                    RoundedCornerShape(4.dp)
-                }
-
+                val itemShape = if (index == sourceFolderUris.lastIndex) RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp) else RoundedCornerShape(4.dp)
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFE9EEFA), itemShape)
+                    modifier = Modifier.fillMaxWidth()
+                        .background(if (isDark) Color(0xFF3B4665) else Color(0xFFDAE2FF), itemShape)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Folder, contentDescription = null, tint = Color(0xFF4285F4))
+                    Icon(Icons.Default.Folder, null, tint = if (isDark) Color(0xFF578EDE) else Color(0xFF4285F4))
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = DocumentFile.fromTreeUri(context, uri)?.name ?: "Unknown",
-                        modifier = Modifier.weight(1f),
-                        color = Color(0xFF404753)
-                    )
+                    Text(text = DocumentFile.fromTreeUri(context, uri)?.name ?: "Unknown", modifier = Modifier.weight(1f), color = if (isDark) Color(0xFFDDE3EE) else Color(0xFF161C24))
                     IconButton(
                         onClick = {
                             sourceFolderUris = sourceFolderUris - uri
                             sharedPref.edit().putStringSet("SOURCE_URIS", sourceFolderUris.map { it.toString() }.toSet()).apply()
                         },
                         modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete Folder", tint = Color(0xFFEA4335))
-                    }
+                    ) { Icon(Icons.Default.Delete, "Delete Folder", tint = if (isDark) Color(0xFFE57373) else Color(0xFFDB4437)) }
                 }
             }
         }
@@ -197,49 +164,33 @@ fun GopFileScreen(context: Context) {
             Button(
                 onClick = { filePickerLauncher.launch(arrayOf("text/plain")) },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = defaultButtonColors,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF004880) else Color(0xFFD2E4FF),
+                    contentColor = if (isDark) Color(0xFFD2E4FF) else Color(0xFF004880)
+                ),
                 shape = RoundedCornerShape(24.dp)
-            ) {
-                Text("Select Target .txt", fontWeight = FontWeight.Medium)
-            }
+            ) { Text("Select Target .txt", fontWeight = FontWeight.Medium) }
         } else {
             val fileName = DocumentFile.fromSingleUri(context, destinationFileUri!!)?.name ?: "Unknown"
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
+            Row(modifier = Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(topStart = 26.dp, bottomStart = 26.dp, topEnd = 6.dp, bottomEnd = 6.dp))
-                        .background(Color(0xFFD2E4FF))
-                        .clickable { filePickerLauncher.launch(arrayOf("text/plain")) }
-                        .padding(horizontal = 16.dp),
+                    modifier = Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(topStart = 26.dp, bottomStart = 26.dp, topEnd = 6.dp, bottomEnd = 6.dp))
+                        .background(if (isDark) Color(0xFF004880) else Color(0xFFD2E4FF))
+                        .clickable { filePickerLauncher.launch(arrayOf("text/plain")) }.padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFF4285F4), modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.Description, null, tint = if (isDark) Color(0xFF578EDE) else Color(0xFF4285F4), modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(10.dp))
-
-                    Column(
-                        modifier = Modifier.weight(1f).offset(y = (-3).dp),
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text("Target File", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = Color(0xFF004880), modifier = Modifier.offset(y = 2.dp))
-                        Text(fileName, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF004880), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.offset(y = (-1).dp))
+                    Column(modifier = Modifier.weight(1f).offset(y = (-3).dp), verticalArrangement = Arrangement.Center) {
+                        Text("Target File", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFD2E4FF) else Color(0xFF001C38), modifier = Modifier.offset(y = 2.dp))
+                        Text(fileName, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFD2E4FF) else Color(0xFF001C38), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.offset(y = (-1).dp))
                     }
                 }
 
                 Box(
-                    modifier = Modifier
-                        .width(52.dp)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 26.dp, bottomEnd = 26.dp))
-                        .background(Color(0xFFE2DFFF))
+                    modifier = Modifier.width(52.dp).fillMaxHeight().clip(RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 26.dp, bottomEnd = 26.dp))
+                        .background(if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA))
                         .clickable {
                             val promptText = "dựa vào thông tin sau để suy ngẫm, liên kết, và trả lời câu hỏi sau:\n"
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -248,113 +199,45 @@ fun GopFileScreen(context: Context) {
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
                             context.startActivity(Intent.createChooser(shareIntent, "Share to Gemini"))
-
-                            coroutineScope.launch {
-                                delay(1000)
-                                clipboardManager.setText(buildAnnotatedString { append(promptText) })
-                            }
+                            coroutineScope.launch { delay(1000); clipboardManager.setText(buildAnnotatedString { append(promptText) }) }
                         },
                     contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = "Share", tint = Color(0xFF424271), modifier = Modifier.size(20.dp).offset(x = (-2).dp))
-                }
+                ) { Icon(Icons.Default.Share, "Share", tint = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), modifier = Modifier.size(20.dp).offset(x = (-2).dp)) }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- ADVANCED OPTIONS (EXPANDABLE CARD M3) ---
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color(0xFFE9EEFA))
-                .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMedium))
-        ) {
+        // --- ADVANCED OPTIONS ---
+        Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA)).animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMedium))) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showAdvancedOptions = !showAdvancedOptions }
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth().clickable { showAdvancedOptions = !showAdvancedOptions }.padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "Advanced Options",
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF0060A7),
-                    fontSize = 15.sp
-                )
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Toggle Advanced Options",
-                    tint = Color(0xFF0060A7),
-                    modifier = Modifier.rotate(advancedRotationAngle)
-                )
+                Text(text = "Advanced Options", fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), fontSize = 15.sp)
+                Icon(Icons.Default.KeyboardArrowDown, "Toggle", tint = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), modifier = Modifier.rotate(advancedRotationAngle))
             }
 
             if (showAdvancedOptions) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     OutlinedTextField(
                         value = apiKey,
                         onValueChange = { apiKey = it; sharedPref.edit().putString("API_KEY", it).apply() },
                         label = { Text("Gemini API Key") },
                         singleLine = true,
                         enabled = !isApiKeyLocked,
-                        trailingIcon = {
-                            IconButton(onClick = { isApiKeyLocked = !isApiKeyLocked }) {
-                                Icon(if (isApiKeyLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Toggle Lock")
-                            }
-                        },
+                        trailingIcon = { IconButton(onClick = { isApiKeyLocked = !isApiKeyLocked }) { Icon(if (isApiKeyLocked) Icons.Default.Lock else Icons.Default.LockOpen, "Toggle Lock") } },
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
-
                     Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Keep YAML Properties", color = Color(0xFF404753), fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                        Switch(
-                            checked = includeProperties,
-                            onCheckedChange = { includeProperties = it; sharedPref.edit().putBoolean("INCLUDE_PROPS", it).apply() },
-                            modifier = Modifier.scale(0.85f),
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFF0060A7),
-                                uncheckedThumbColor = Color(0xFF707884),
-                                uncheckedTrackColor = Color(0xFFE9EEFA),
-                                uncheckedBorderColor = Color(0xFF707884)
-                            )
-                        )
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Keep YAML Properties", color = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753), fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        Switch(checked = includeProperties, onCheckedChange = { includeProperties = it; sharedPref.edit().putBoolean("INCLUDE_PROPS", it).apply() }, modifier = Modifier.scale(0.85f))
                     }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Include File Path", color = Color(0xFF404753), fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                        Switch(
-                            checked = includeFilePath,
-                            onCheckedChange = { includeFilePath = it; sharedPref.edit().putBoolean("INCLUDE_PATH", it).apply() },
-                            modifier = Modifier.scale(0.85f),
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFF0060A7),
-                                uncheckedThumbColor = Color(0xFF707884),
-                                uncheckedTrackColor = Color(0xFFE9EEFA),
-                                uncheckedBorderColor = Color(0xFF707884)
-                            )
-                        )
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Include File Path", color = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753), fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        Switch(checked = includeFilePath, onCheckedChange = { includeFilePath = it; sharedPref.edit().putBoolean("INCLUDE_PATH", it).apply() }, modifier = Modifier.scale(0.85f))
                     }
                 }
             }
@@ -362,10 +245,11 @@ fun GopFileScreen(context: Context) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- NÚT MERGE FILES CÓ ANIMATION MÀU SẮC ---
+        // --- NÚT MERGE FILES ---
         val isMergeEnabled = !isProcessing && sourceFolderUris.isNotEmpty() && destinationFileUri != null
-        val targetBtnColor = if (isMergeEnabled) Color(0xFF0060A7) else Color(0xFFC2D2E1)
-        val animatedBtnColor by animateColorAsState(targetValue = targetBtnColor, animationSpec = tween(300), label = "btnColor")
+        val targetBtnColor = if (isMergeEnabled) (if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7)) else (if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA))
+        val targetTextColor = if (isMergeEnabled) (if (isDark) Color(0xFF00315B) else Color.White) else (if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753))
+        val animatedBtnColor by animateColorAsState(targetValue = targetBtnColor, animationSpec = tween(300), label = "")
 
         Button(
             onClick = {
@@ -382,57 +266,45 @@ fun GopFileScreen(context: Context) {
             enabled = isMergeEnabled,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = CircleShape,
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = animatedBtnColor,
-                contentColor = Color.White,
-                disabledContainerColor = animatedBtnColor, // Override disabled color để ăn theo animation
-                disabledContentColor = Color.White
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = animatedBtnColor, contentColor = targetTextColor, disabledContainerColor = animatedBtnColor, disabledContentColor = targetTextColor)
         ) {
             if (isProcessing) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = targetTextColor, strokeWidth = 2.dp)
                 Spacer(Modifier.width(12.dp))
             } else {
-                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
             }
-            Text(
-                text = if (isProcessing) "PROCESSING..." else "MERGE FILES",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                letterSpacing = 1.sp
-            )
+            Text(if (isProcessing) "PROCESSING..." else "MERGE FILES", fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = 1.sp)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- LOG/CONSOLE BOX (CỐ ĐỊNH, KHÔNG CÒN ANIMATION VÀ DÙNG IF ĐỂ RENDER NGAY LẬP TỨC) ---
+        // --- LOG/CONSOLE BOX ---
         if (statusMessage.isNotBlank()) {
             val isScanning = statusMessage == "SCANNING"
             val isCounting = statusMessage == "COUNTING"
             val isProcessingStep = isScanning || isCounting
-
             val isSuccess = statusMessage.contains("SUCCESS", ignoreCase = true)
             val isError = statusMessage.contains("error", ignoreCase = true)
 
             val targetBgColor = when {
-                isProcessingStep -> Color(0xFFF8F9FA)
-                isSuccess -> Color(0xFFF2FBF5)
-                isError -> Color(0xFFFDF3F2)
-                else -> Color(0xFFF8F9FA)
+                isProcessingStep -> if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA)
+                isSuccess -> if (isDark) Color(0xFF1E8E3E).copy(alpha = 0.2f) else Color(0xFF1E8E3E).copy(alpha = 0.1f)
+                isError -> if (isDark) Color(0xFF93000A) else Color(0xFFFFDAD6)
+                else -> if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA)
             }
             val targetBorderColor = when {
-                isProcessingStep -> Color(0xFFDADCE0)
-                isSuccess -> Color(0xFF81C995).copy(alpha = 0.5f)
-                isError -> Color(0xFFF28B82).copy(alpha = 0.5f)
-                else -> Color(0xFFDADCE0)
+                isProcessingStep -> if (isDark) Color(0xFF8D9199) else Color(0xFF707884)
+                isSuccess -> Color(0xFF1E8E3E).copy(alpha = 0.5f)
+                isError -> if (isDark) Color(0xFFFFB4AB).copy(alpha = 0.5f) else Color(0xFFBA1A1A).copy(alpha = 0.5f)
+                else -> if (isDark) Color(0xFF8D9199) else Color(0xFF707884)
             }
             val targetIconTint = when {
-                isProcessingStep -> Color(0xFF5F6368)
+                isProcessingStep -> if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753)
                 isSuccess -> Color(0xFF1E8E3E)
-                isError -> Color(0xFFD93025)
-                else -> Color(0xFF5F6368)
+                isError -> if (isDark) Color(0xFFFFB4AB) else Color(0xFFBA1A1A)
+                else -> if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753)
             }
 
             val bgColor by animateColorAsState(targetValue = targetBgColor, label = "bg")
@@ -446,72 +318,44 @@ fun GopFileScreen(context: Context) {
                 border = BorderStroke(1.dp, borderColor)
             ) {
                 if (isProcessingStep) {
-                    Column(
-                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        // Bước 1: Scan & merge
+                    Column(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.Center) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (isScanning) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color(0xFF0060A7), strokeWidth = 2.dp)
-                            } else {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF1E8E3E), modifier = Modifier.size(18.dp))
-                            }
+                            if (isScanning) CircularProgressIndicator(modifier = Modifier.size(18.dp), color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), strokeWidth = 2.dp)
+                            else Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF1E8E3E), modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("Scan & merge", color = Color(0xFF3C4043), fontFamily = FontFamily.Monospace, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Text("Scan & merge", color = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D), fontFamily = FontFamily.Monospace, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         }
-
-                        // Bước 2: Counting token using API
                         if (isCounting) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color(0xFF0060A7), strokeWidth = 2.dp)
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), strokeWidth = 2.dp)
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text("Counting token using API", color = Color(0xFF3C4043), fontFamily = FontFamily.Monospace, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                Text("Counting token using API", color = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D), fontFamily = FontFamily.Monospace, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
-                }
-                // UI KHI THÀNH CÔNG / LỖI
-                else {
+                } else {
                     val iconStatus = if (isSuccess) Icons.Default.CheckCircle else if (isError) Icons.Default.Error else Icons.Default.Info
-                    Row(
-                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Icon(
-                            imageVector = iconStatus,
-                            contentDescription = "Status",
-                            tint = iconTint,
-                            modifier = Modifier.size(22.dp).offset(y = 2.dp)
-                        )
+                    Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                        Icon(imageVector = iconStatus, contentDescription = "Status", tint = iconTint, modifier = Modifier.size(22.dp).offset(y = 2.dp))
                         Spacer(modifier = Modifier.width(12.dp))
-
                         Text(
                             text = buildAnnotatedString {
                                 val parts = statusMessage.split("*")
                                 parts.forEachIndexed { index, part ->
                                     if (index % 2 == 1) {
-                                        withStyle(SpanStyle(fontWeight = FontWeight.Medium, color = Color(0xFF0D47A1))) {
-                                            append(part)
-                                        }
+                                        withStyle(SpanStyle(fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7))) { append(part) }
                                     } else {
-                                        withStyle(SpanStyle(color = Color(0xFF3C4043))) {
-                                            append(part)
-                                        }
+                                        withStyle(SpanStyle(color = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753))) { append(part) }
                                     }
                                 }
                             },
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 13.sp,
-                            modifier = Modifier.weight(1f),
-                            lineHeight = 20.sp
+                            fontFamily = FontFamily.Monospace, fontSize = 13.sp, modifier = Modifier.weight(1f), lineHeight = 20.sp
                         )
                     }
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
