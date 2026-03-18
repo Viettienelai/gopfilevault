@@ -144,7 +144,7 @@ fun GopFileScreen(context: Context) {
             ) {
                 Text(
                     text = "Source folders (${sourceFolderUris.size})",
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     color = Color(0xFF161C24),
                     modifier = Modifier.weight(1f)
                 )
@@ -200,7 +200,7 @@ fun GopFileScreen(context: Context) {
                 colors = defaultButtonColors,
                 shape = RoundedCornerShape(24.dp)
             ) {
-                Text("Select Target .txt", fontWeight = FontWeight.SemiBold)
+                Text("Select Target .txt", fontWeight = FontWeight.Medium)
             }
         } else {
             val fileName = DocumentFile.fromSingleUri(context, destinationFileUri!!)?.name ?: "Unknown"
@@ -230,7 +230,7 @@ fun GopFileScreen(context: Context) {
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text("Target File", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = Color(0xFF004880), modifier = Modifier.offset(y = 2.dp))
-                        Text(fileName, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF004880), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.offset(y = (-1).dp))
+                        Text(fileName, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF004880), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.offset(y = (-1).dp))
                     }
                 }
 
@@ -281,7 +281,7 @@ fun GopFileScreen(context: Context) {
             ) {
                 Text(
                     text = "Advanced Options",
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     color = Color(0xFF0060A7),
                     fontSize = 15.sp
                 )
@@ -492,7 +492,7 @@ fun GopFileScreen(context: Context) {
                                 val parts = statusMessage.split("*")
                                 parts.forEachIndexed { index, part ->
                                     if (index % 2 == 1) {
-                                        withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold, color = Color(0xFF0D47A1))) {
+                                        withStyle(SpanStyle(fontWeight = FontWeight.Medium, color = Color(0xFF0D47A1))) {
                                             append(part)
                                         }
                                     } else {

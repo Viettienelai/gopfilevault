@@ -60,8 +60,8 @@ dependencies {
     implementation("androidx.documentfile:documentfile:1.0.1")
     // Thư viện Google Gen AI SDK chính thức
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
-    // Thư viện Markdown thuần Compose (Đẹp, mượt, hỗ trợ Material 3)
-    implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.16.0")
+
+    implementation("com.github.jeziellago:compose-markdown:0.6.0")
     // Thư viện chứa toàn bộ Material Icons (Bao gồm ContentCopy)
     implementation("androidx.compose.material:material-icons-extended")
 }

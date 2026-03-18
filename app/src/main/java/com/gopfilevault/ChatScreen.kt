@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -42,10 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.documentfile.provider.DocumentFile
-import com.mikepenz.markdown.m3.Markdown
-import com.mikepenz.markdown.m3.markdownColor
-import com.mikepenz.markdown.m3.markdownTypography
-import com.mikepenz.markdown.model.markdownPadding
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -138,7 +134,7 @@ fun ChatScreen(context: Context) {
 
     if (apiKey.isBlank() || destUriString == null) {
         Box(modifier = Modifier.fillMaxSize().background(BgTransparent), contentAlignment = Alignment.Center) {
-            Text("Please setup API Key & Target File in DATA tab!", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(32.dp))
+            Text("Please setup API Key & Target File in Data tab!", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(32.dp))
         }
         return
     }
@@ -146,7 +142,7 @@ fun ChatScreen(context: Context) {
     if (showRenameDialog) {
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Rename chat", fontWeight = FontWeight.Bold, color = Color(0xFF003FA4)) },
+            title = { Text("Rename chat", fontWeight = FontWeight.Medium, color = Color(0xFF003FA4)) },
             text = {
                 OutlinedTextField(
                     value = newTitleName,
@@ -162,7 +158,7 @@ fun ChatScreen(context: Context) {
                     allSessions = updatedSessions
                     ChatManager.saveSessions(context, updatedSessions)
                     showRenameDialog = false
-                }) { Text("Save", color = Color(0xFF003FA4), fontWeight = FontWeight.Bold) }
+                }) { Text("Save", color = Color(0xFF003FA4), fontWeight = FontWeight.Medium) }
             },
             dismissButton = { TextButton(onClick = { showRenameDialog = false }) { Text("Cancel", color = Color.Gray) } }
         )
@@ -173,18 +169,22 @@ fun ChatScreen(context: Context) {
             drawerState = drawerState, gesturesEnabled = drawerState.isOpen,
             drawerContent = {
                 ModalDrawerSheet(drawerShape = RectangleShape, drawerContainerColor = Color(0xFFF0F4F9), modifier = Modifier.width(300.dp)) {
-                    Text("History", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B1C1D), modifier = Modifier.padding(16.dp))
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "History",
+                        tint = Color(0xFF1B1C1D),
+                        modifier = Modifier.padding(16.dp).size(28.dp)
+                    )
                     HorizontalDivider(color = Color.LightGray)
 
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         itemsIndexed(allSessions) { _, session ->
                             NavigationDrawerItem(
                                 label = {
-                                    Text(session.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
+                                    Text(session.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
                                 },
                                 selected = session.id == currentSessionId,
                                 onClick = { currentSessionId = session.id; coroutineScope.launch { drawerState.close() } },
-                                // ĐÃ SỬA: Ép cứng height xuống 40.dp và giảm padding dọc
                                 modifier = Modifier
                                     .padding(horizontal = 12.dp, vertical = 2.dp)
                                     .height(40.dp),
@@ -192,7 +192,7 @@ fun ChatScreen(context: Context) {
                                     selectedContainerColor = Color(0xFFD3E3FD),
                                     unselectedContainerColor = Color.Transparent,
                                     selectedTextColor = Color(0xFF0842A0),
-                                    unselectedTextColor = Color.Black
+                                    unselectedTextColor = Color(0xFF444746)
                                 )
                             )
                         }
@@ -204,7 +204,7 @@ fun ChatScreen(context: Context) {
                 containerColor = BgTransparent,
                 topBar = {
                     TopAppBar(
-                        title = { Text(currentSession.title, color = Color(0xFF1B1C1D), fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        title = { Text(currentSession.title, color = Color(0xFF1B1C1D), fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         navigationIcon = { IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) { Icon(Icons.Default.Menu, "Menu", tint = Color(0xFF404753)) } },
                         actions = {
                             IconButton(onClick = {
@@ -214,7 +214,6 @@ fun ChatScreen(context: Context) {
                                 currentSessionId = newSession.id
                                 ChatManager.saveSessions(context, updatedSessions)
                             }) {
-                                // ĐÃ TRẢ VỀ ICON AddComment (tạo chat mới)
                                 Icon(Icons.Default.AddComment, "New Chat", tint = Color(0xFF404753))
                             }
 
@@ -508,10 +507,21 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
 
                     if (isOverflowing) {
                         Box(
-                            modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp).shadow(3.dp, CircleShape)
-                                .background(Color.White, CircleShape).clickable { isExpanded = !isExpanded }.size(30.dp),
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 8.dp, end = 8.dp)
+                                .clip(CircleShape)
+                                .clickable { isExpanded = !isExpanded }
+                                .size(30.dp),
                             contentAlignment = Alignment.Center
-                        ) { Icon(if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, "Expand", tint = Color(0xFF003FA4), modifier = Modifier.size(20.dp)) }
+                        ) {
+                            Icon(
+                                if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                "Expand",
+                                tint = Color(0xFF003FA4),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = BgWhite) {
@@ -549,15 +559,13 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
                 Box(modifier = Modifier.padding(bottom = 4.dp).size(26.dp), contentAlignment = Alignment.Center) {
                     Icon(painterResource(R.drawable.ic_gemini_spark), null, tint = Color.Unspecified, modifier = Modifier.size(24.dp))
                 }
-                Markdown(
-                    content = message.text, modifier = Modifier.fillMaxWidth(), padding = markdownPadding(block = 5.dp, list = 4.dp),
-                    colors = markdownColor(inlineCodeBackground = InlineCodeBgColor, inlineCodeText = InlineCodeTextColor),
-                    typography = markdownTypography(
-                        text = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 24.sp),
-                        paragraph = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 24.sp),
-                        h1 = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 32.sp),
-                        h2 = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 30.sp),
-                        h3 = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 28.sp)
+                MarkdownText(
+                    markdown = message.text,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 15.sp,
+                        lineHeight = 24.sp,
+                        color = Color(0xFF1B1C1D) // Màu chữ cho dễ nhìn
                     )
                 )
                 IconButton(

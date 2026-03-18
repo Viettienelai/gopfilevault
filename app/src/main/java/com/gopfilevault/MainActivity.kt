@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -21,11 +20,15 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
@@ -33,13 +36,55 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.launch
 
+// ---------------------------------------------------------
+// BỘ FONT GOOGLE SANS TEXT STATIC (ĐÃ TÍCH HỢP IN NGHIÊNG)
+// ---------------------------------------------------------
+val GoogleSansTextFamily = FontFamily(
+    // 1. Regular
+    Font(R.font.google_sans_text_regular, FontWeight.Normal, FontStyle.Normal),
+    // 2. Regular Italic
+    Font(R.font.google_sans_text_italic, FontWeight.Normal, FontStyle.Italic),
+
+    // 3. Medium
+    Font(R.font.google_sans_text_medium, FontWeight.Medium, FontStyle.Normal),
+    // 4. Medium Italic
+    Font(R.font.google_sans_text_medium_italic, FontWeight.Medium, FontStyle.Italic),
+
+    // 5. Bold
+    Font(R.font.google_sans_text_bold, FontWeight.Bold, FontStyle.Normal),
+    // 6. Bold Italic
+    Font(R.font.google_sans_text_bold_italic, FontWeight.Bold, FontStyle.Italic)
+)
+
+val defaultTypography = Typography()
+
+// Áp dụng FontFamily này lên toàn hệ thống để dứt điểm vụ font
+val AppTypography = Typography(
+    displayLarge = defaultTypography.displayLarge.copy(fontFamily = GoogleSansTextFamily),
+    displayMedium = defaultTypography.displayMedium.copy(fontFamily = GoogleSansTextFamily),
+    displaySmall = defaultTypography.displaySmall.copy(fontFamily = GoogleSansTextFamily),
+    headlineLarge = defaultTypography.headlineLarge.copy(fontFamily = GoogleSansTextFamily),
+    headlineMedium = defaultTypography.headlineMedium.copy(fontFamily = GoogleSansTextFamily),
+    headlineSmall = defaultTypography.headlineSmall.copy(fontFamily = GoogleSansTextFamily),
+    titleLarge = defaultTypography.titleLarge.copy(fontFamily = GoogleSansTextFamily),
+    titleMedium = defaultTypography.titleMedium.copy(fontFamily = GoogleSansTextFamily),
+    titleSmall = defaultTypography.titleSmall.copy(fontFamily = GoogleSansTextFamily),
+    bodyLarge = defaultTypography.bodyLarge.copy(fontFamily = GoogleSansTextFamily),
+    bodyMedium = defaultTypography.bodyMedium.copy(fontFamily = GoogleSansTextFamily),
+    bodySmall = defaultTypography.bodySmall.copy(fontFamily = GoogleSansTextFamily),
+    labelLarge = defaultTypography.labelLarge.copy(fontFamily = GoogleSansTextFamily),
+    labelMedium = defaultTypography.labelMedium.copy(fontFamily = GoogleSansTextFamily),
+    labelSmall = defaultTypography.labelSmall.copy(fontFamily = GoogleSansTextFamily)
+)
+// ---------------------------------------------------------
+
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Ẩn thanh trạng thái (Status bar) để app tràn viền
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
         WindowInsetsControllerCompat(window, window.decorView).let { controller ->
             controller.hide(WindowInsetsCompat.Type.statusBars())
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -56,12 +101,13 @@ class MainActivity : ComponentActivity() {
                     primary = colorTabSelected,
                     background = colorTabBarBg,
                     surface = colorContentBg
-                )
+                ),
+                typography = AppTypography
             ) {
                 Surface(modifier = Modifier.fillMaxSize(), color = colorTabBarBg) {
                     val pagerState = rememberPagerState(pageCount = { 2 })
                     val coroutineScope = rememberCoroutineScope()
-                    val tabs = listOf("DATA", "AI")
+                    val tabs = listOf("Data", "AI")
 
                     Column(modifier = Modifier.fillMaxSize().background(colorTabBarBg)) {
                         TabRow(
@@ -69,15 +115,14 @@ class MainActivity : ComponentActivity() {
                             containerColor = colorTabBarBg,
                             contentColor = colorTabSelected,
                             divider = {},
-                            // TÙY CHỈNH THANH INDICATOR: Rút ngắn 1/2 và bo tròn 2 góc trên
                             indicator = { tabPositions ->
                                 if (pagerState.currentPage < tabPositions.size) {
                                     val currentTabPosition = tabPositions[pagerState.currentPage]
                                     TabRowDefaults.SecondaryIndicator(
                                         modifier = Modifier
                                             .tabIndicatorOffset(currentTabPosition)
-                                            .padding(horizontal = currentTabPosition.width / 4) // Bóp mỗi bên 1/4 -> Còn 1/2
-                                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)), // Bo tròn 2 góc trên
+                                            .padding(horizontal = currentTabPosition.width / 4)
+                                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)),
                                         color = colorTabSelected,
                                         height = 4.dp
                                     )
@@ -90,7 +135,7 @@ class MainActivity : ComponentActivity() {
                                     text = {
                                         Text(
                                             text = title,
-                                            fontWeight = FontWeight.Bold,
+                                            fontWeight = FontWeight.Medium,
                                             color = if (isSelected) colorTabSelected else colorTabUnselected
                                         )
                                     },
