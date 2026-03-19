@@ -132,7 +132,7 @@ fun ChatScreen(context: Context) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Transparent), contentAlignment = Alignment.Center) {
             Text(
                 "Please setup API Key & Target File in Data tab!",
-                color = if (isDark) Color(0xFFFFB4AB) else Color(0xFFBA1A1A),
+                color = if (isDark) Color(0xFFE57373) else Color(0xFFDB4437),
                 modifier = Modifier.padding(32.dp)
             )
         }
@@ -142,7 +142,7 @@ fun ChatScreen(context: Context) {
     if (showRenameDialog) {
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Rename chat", fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7)) },
+            title = { Text("Rename chat", fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFA1C9FF) else Color(0xFF0060A7)) },
             text = {
                 OutlinedTextField(
                     value = newTitleName,
@@ -151,18 +151,18 @@ fun ChatScreen(context: Context) {
                     modifier = Modifier.fillMaxWidth()
                 )
             },
-            containerColor = if (isDark) Color(0xFF111418) else Color(0xFFFFFFFF),
+            containerColor = if (isDark) Color(0xFF0E141C) else Color(0xFFF8F9FF),
             confirmButton = {
                 TextButton(onClick = {
                     val updatedSessions = allSessions.map { if (it.id == currentSessionId) it.copy(title = newTitleName) else it }
                     allSessions = updatedSessions
                     ChatManager.saveSessions(context, updatedSessions)
                     showRenameDialog = false
-                }) { Text("Save", color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), fontWeight = FontWeight.Medium) }
+                }) { Text("Save", color = if (isDark) Color(0xFFA1C9FF) else Color(0xFF0060A7), fontWeight = FontWeight.Medium) }
             },
             dismissButton = {
                 TextButton(onClick = { showRenameDialog = false }) {
-                    Text("Cancel", color = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753))
+                    Text("Cancel", color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753))
                 }
             }
         )
@@ -174,31 +174,30 @@ fun ChatScreen(context: Context) {
             drawerContent = {
                 ModalDrawerSheet(
                     drawerShape = RectangleShape,
-                    drawerContainerColor = if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA),
-                    modifier = Modifier.width(300.dp)
+                    drawerContainerColor = if (isDark) Color(0xFF0E141C) else Color(0xFFF8F9FF),
+                    modifier = Modifier.width(260.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.History,
                         contentDescription = "History",
-                        tint = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D),
+                        tint = if (isDark) Color(0xFFFFFFFF) else Color(0xFF1B1C1D),
                         modifier = Modifier.padding(16.dp).size(28.dp)
                     )
-                    HorizontalDivider(color = if (isDark) Color(0xFF8D9199) else Color(0xFF707884))
 
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         itemsIndexed(allSessions) { _, session ->
                             NavigationDrawerItem(
                                 label = {
-                                    Text(session.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
+                                    Text(session.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium, fontSize = 15.sp)
                                 },
                                 selected = session.id == currentSessionId,
                                 onClick = { currentSessionId = session.id; coroutineScope.launch { drawerState.close() } },
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp).height(40.dp),
                                 colors = NavigationDrawerItemDefaults.colors(
-                                    selectedContainerColor = if (isDark) Color(0xFF004880) else Color(0xFFD2E4FF),
+                                    selectedContainerColor = if (isDark) Color(0xFF1F3760) else Color(0xFFD3E3FD),
                                     unselectedContainerColor = Color.Transparent,
-                                    selectedTextColor = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7),
-                                    unselectedTextColor = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753)
+                                    selectedTextColor = if (isDark) Color(0xFFD3E3FD) else Color(0xFF0842A0),
+                                    unselectedTextColor = if (isDark) Color(0xFFC4C7C5) else Color(0xFF444746)
                                 )
                             )
                         }
@@ -210,10 +209,10 @@ fun ChatScreen(context: Context) {
                 containerColor = Color.Transparent,
                 topBar = {
                     TopAppBar(
-                        title = { Text(currentSession.title, color = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D), fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        title = { Text(currentSession.title, color = if (isDark) Color(0xFFFFFFFF) else Color(0xFF1B1C1D), fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         navigationIcon = {
                             IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, "Menu", tint = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753))
+                                Icon(Icons.Default.Menu, "Menu", tint = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753))
                             }
                         },
                         actions = {
@@ -224,26 +223,26 @@ fun ChatScreen(context: Context) {
                                 currentSessionId = newSession.id
                                 ChatManager.saveSessions(context, updatedSessions)
                             }) {
-                                Icon(Icons.Default.AddComment, "New Chat", tint = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753))
+                                Icon(Icons.Default.AddComment, "New Chat", tint = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753))
                             }
 
                             IconButton(onClick = { showTopMenu = true }) {
-                                Icon(Icons.Default.MoreVert, "More", tint = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753))
+                                Icon(Icons.Default.MoreVert, "More", tint = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753))
                             }
 
                             DropdownMenu(
                                 expanded = showTopMenu,
                                 onDismissRequest = { showTopMenu = false },
-                                containerColor = if (isDark) Color(0xFF111418) else Color(0xFFFFFFFF)
+                                containerColor = if (isDark) Color(0xFF1A2028) else Color(0xFFE9EEFA)
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Rename", color = if (isDark) Color(0xFFFFD54F) else Color(0xFFFBBC05)) },
-                                    leadingIcon = { Icon(Icons.Default.Edit, null, tint = if (isDark) Color(0xFFFFD54F) else Color(0xFFFBBC05)) },
+                                    text = { Text("Rename", color = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753)) },
+                                    leadingIcon = { Icon(Icons.Default.Edit, null, tint = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753)) },
                                     onClick = { newTitleName = currentSession.title; showRenameDialog = true; showTopMenu = false }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Delete chat", color = if (isDark) Color(0xFFFFB4AB) else Color(0xFFBA1A1A)) },
-                                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = if (isDark) Color(0xFFFFB4AB) else Color(0xFFBA1A1A)) },
+                                    text = { Text("Delete chat", color = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753)) },
+                                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753)) },
                                     onClick = {
                                         showTopMenu = false
                                         val updatedSessions = allSessions.filter { it.id != currentSessionId }.toMutableList()
@@ -296,7 +295,7 @@ fun ChatScreen(context: Context) {
                                         }
                                         Text(
                                             "Himmel is thinking...",
-                                            color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7),
+                                            color = if (isDark) Color(0xFFA1C9FF) else Color(0xFF0060A7),
                                             fontSize = 15.sp,
                                             modifier = Modifier.padding(start = 12.dp, top = 2.dp)
                                         )
@@ -306,7 +305,7 @@ fun ChatScreen(context: Context) {
                         }
                         Box(
                             modifier = Modifier.fillMaxWidth().height(40.dp).align(Alignment.BottomCenter)
-                                .background(Brush.verticalGradient(listOf(Color.Transparent, if (isDark) Color(0xFF111418) else Color(0xFFF8F9FF))))
+                                .background(Brush.verticalGradient(listOf(Color.Transparent, if (isDark) Color(0xFF0E141C) else Color(0xFFF8F9FF))))
                         )
                     }
 
@@ -321,11 +320,11 @@ fun ChatScreen(context: Context) {
                                             .padding(horizontal = 12.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(if (att.isImage) Icons.Default.Image else Icons.Default.InsertDriveFile, null, tint = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), modifier = Modifier.size(16.dp))
+                                        Icon(if (att.isImage) Icons.Default.Image else Icons.Default.InsertDriveFile, null, tint = if (isDark) Color(0xFF578EDE) else Color(0xFF4285F4), modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(att.name, fontSize = 12.sp, color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 100.dp))
+                                        Text(att.name, fontSize = 12.sp, color = if (isDark) Color(0xFFA1C9FF) else Color(0xFF0060A7), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 100.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Icon(Icons.Default.Close, "Remove", tint = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753), modifier = Modifier.size(16.dp).clickable { pendingAttachments = pendingAttachments.filter { it != att } })
+                                        Icon(Icons.Default.Close, "Remove", tint = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753), modifier = Modifier.size(16.dp).clickable { pendingAttachments = pendingAttachments.filter { it != att } })
                                     }
                                 }
                             }
@@ -334,7 +333,7 @@ fun ChatScreen(context: Context) {
                         Text(
                             text = if (isCountingTokens) "Calculating tokens..." else if (currentTokenCount > 0) "Tokens req: ~${String.format("%,d", currentTokenCount)}" else "",
                             fontSize = 11.sp,
-                            color = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753),
+                            color = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753),
                             modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
                         )
 
@@ -343,21 +342,21 @@ fun ChatScreen(context: Context) {
                                 value = inputText,
                                 onValueChange = { inputText = it },
                                 modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text("Ask in Obsidian's vault", fontSize = 15.sp, color = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753)) },
+                                placeholder = { Text("Ask in Obsidian's vault", fontSize = 15.sp, color = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753)) },
                                 enabled = !isThinking,
                                 maxLines = 5,
                                 shape = RoundedCornerShape(30.dp),
                                 leadingIcon = { Spacer(modifier = Modifier.size(48.dp)) },
                                 trailingIcon = { Spacer(modifier = Modifier.size(48.dp)) },
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA),
-                                    unfocusedContainerColor = if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA),
-                                    disabledContainerColor = if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA),
+                                    focusedContainerColor = if (isDark) Color(0xFF1A2028) else Color(0xFFE9EEFA),
+                                    unfocusedContainerColor = if (isDark) Color(0xFF1A2028) else Color(0xFFE9EEFA),
+                                    disabledContainerColor = if (isDark) Color(0xFF1A2028) else Color(0xFFE9EEFA),
                                     focusedBorderColor = Color.Transparent,
                                     unfocusedBorderColor = Color.Transparent,
                                     disabledBorderColor = Color.Transparent,
-                                    focusedTextColor = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D),
-                                    unfocusedTextColor = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D)
+                                    focusedTextColor = if (isDark) Color(0xFFDDE3EE) else Color(0xFF161C24),
+                                    unfocusedTextColor = if (isDark) Color(0xFFDDE3EE) else Color(0xFF161C24)
                                 )
                             )
 
@@ -366,7 +365,7 @@ fun ChatScreen(context: Context) {
                                 contentAlignment = Alignment.Center
                             ) {
                                 IconButton(onClick = { showAttachmentSheet = true; focusManager.clearFocus() }) {
-                                    Icon(Icons.Default.Add, "Attach file", tint = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753), modifier = Modifier.size(30.dp))
+                                    Icon(Icons.Default.Add, "Attach file", tint = if (isDark) Color(0xFFDDE3EE) else Color(0xFF404753), modifier = Modifier.size(30.dp))
                                 }
                             }
 
@@ -424,7 +423,7 @@ fun ChatScreen(context: Context) {
                             ) {
                                 Icon(
                                     Icons.Default.Send, "Send",
-                                    tint = if (isSendEnabled) (if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7)) else (if (isDark) Color(0xFF8D9199) else Color(0xFF707884)),
+                                    tint = if (isSendEnabled) (if (isDark) Color(0xFFD2E4FF) else Color(0xFF004880)) else (if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753)),
                                     modifier = Modifier.size(18.dp).offset(x = 1.dp)
                                 )
                             }
@@ -446,45 +445,43 @@ fun ChatScreen(context: Context) {
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .background(if (isDark) Color(0xFF111418) else Color(0xFFFFFFFF))
+                    .background(if (isDark) Color(0xFF0E141C) else Color(0xFFF8F9FF))
                     .clickable(enabled = false) {}
                     .padding(bottom = 32.dp, top = 8.dp)
             ) {
-                Box(modifier = Modifier.align(Alignment.CenterHorizontally).width(40.dp).height(4.dp).background(if (isDark) Color(0xFF8D9199) else Color(0xFF707884), CircleShape))
+                Box(modifier = Modifier.align(Alignment.CenterHorizontally).width(40.dp).height(4.dp).background(if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753), CircleShape))
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { filePickerLauncher.launch(arrayOf("*/*")) }.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF004880) else Color(0xFFD2E4FF), CircleShape), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.FolderOpen, null, tint = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7))
+                    Box(modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF1A2028) else Color(0xFFE9EEFA), CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.FolderOpen, null, tint = if (isDark) Color(0xFF578EDE) else Color(0xFF4285F4))
                     }
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text("Select from device", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D))
+                    Text("Select from device", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753))
                 }
 
-                HorizontalDivider(color = if (isDark) Color(0xFF8D9199) else Color(0xFF707884), modifier = Modifier.padding(vertical = 8.dp))
-                Text("Recent merged files", fontSize = 14.sp, color = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D), modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
+                HorizontalDivider(color = if (isDark) Color(0xFFBFC7D5).copy(alpha = 0.5f) else Color(0xFF404753).copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 8.dp))
                 val historyFiles = ChatManager.getMergedHistory(context)
                 if (historyFiles.isEmpty()) {
-                    Text("No history yet.", modifier = Modifier.padding(start = 16.dp), color = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753))
+                    Text("No history yet.", modifier = Modifier.padding(start = 16.dp), color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753))
                 } else {
                     historyFiles.forEach { file ->
                         Row(
                             modifier = Modifier.fillMaxWidth().clickable {
                                 pendingAttachments = pendingAttachments + file
                                 coroutineScope.launch { showAttachmentSheet = false }
-                            }.padding(horizontal = 16.dp, vertical = 12.dp),
+                            }.padding(horizontal = 24.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Description, null, tint = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), modifier = Modifier.size(24.dp))
+                            Icon(Icons.Default.Description, null, tint = if (isDark) Color(0xFF578EDE) else Color(0xFF4285F4), modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text(file.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D), modifier = Modifier.weight(1f))
+                            Text(file.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753), modifier = Modifier.weight(1f))
 
                             val timeStr = if (file.time > 0L) SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date(file.time)) else ""
-                            Text(timeStr, fontSize = 12.sp, color = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753))
+                            Text(timeStr, fontSize = 12.sp, color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753))
                         }
                     }
                 }
@@ -514,7 +511,7 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
                 ) {
                     Text(
                         text = message.text,
-                        color = if (isDark) Color(0xFFD2E4FF) else Color(0xFF001C38),
+                        color = if (isDark) Color(0xFFFFFFFF) else Color(0xFF1B1C1D),
                         fontSize = 15.sp,
                         maxLines = if (isExpanded) Int.MAX_VALUE else 3,
                         overflow = TextOverflow.Ellipsis,
@@ -529,23 +526,23 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
                         ) {
                             Icon(
                                 if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, "Expand",
-                                tint = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7), modifier = Modifier.size(20.dp)
+                                tint = if (isDark) Color(0xFFA1C9FF) else Color(0xFF0060A7), modifier = Modifier.size(20.dp)
                             )
                         }
                     }
 
                     DropdownMenu(
                         expanded = showMenu, onDismissRequest = { showMenu = false },
-                        containerColor = if (isDark) Color(0xFF111418) else Color(0xFFFFFFFF)
+                        containerColor = if (isDark) Color(0xFF0E141C) else Color(0xFFF8F9FF)
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Copy", fontSize = 14.sp, color = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D)) },
-                            leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D), modifier = Modifier.size(20.dp)) },
+                            text = { Text("Copy", fontSize = 14.sp, color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753)) },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753), modifier = Modifier.size(20.dp)) },
                             onClick = { clipboardManager.setText(buildAnnotatedString { append(message.text) }); showMenu = false }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete", color = if (isDark) Color(0xFFFFB4AB) else Color(0xFFBA1A1A), fontSize = 14.sp) },
-                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = if (isDark) Color(0xFFFFB4AB) else Color(0xFFBA1A1A), modifier = Modifier.size(20.dp)) },
+                            text = { Text("Delete", color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753), fontSize = 14.sp) },
+                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753), modifier = Modifier.size(20.dp)) },
                             onClick = { onDelete(); showMenu = false }
                         )
                     }
@@ -555,7 +552,7 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
                     Text(
                         text = "~${String.format("%,d", message.tokenCount)} tokens",
                         fontSize = 11.sp,
-                        color = if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753),
+                        color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753),
                         modifier = Modifier.padding(end = 12.dp, top = 4.dp)
                     )
                 }
@@ -571,7 +568,7 @@ fun ChatBubble(message: ChatMessage, onDelete: () -> Unit = {}) {
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontSize = 15.sp,
                         lineHeight = 24.sp,
-                        color = if (isDark) Color(0xFFE2E2E6) else Color(0xFF1B1C1D)
+                        color = if (isDark) Color(0xFFDDE3EE) else Color(0xFF1B1C1D)
                     )
                 )
                 IconButton(
