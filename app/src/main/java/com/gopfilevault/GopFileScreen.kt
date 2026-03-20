@@ -5,21 +5,15 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -64,8 +58,6 @@ import java.io.File
 
 @Composable
 fun GopFileScreen(context: Context) {
-    val isDark = isSystemInDarkTheme() // Gọi hàm lấy trạng thái DarkMode
-
     val coroutineScope = rememberCoroutineScope()
     val sharedPref =
         remember { context.getSharedPreferences("HimmelOS_Prefs", Context.MODE_PRIVATE) }
@@ -102,8 +94,7 @@ fun GopFileScreen(context: Context) {
     var showAdvancedOptions by remember { mutableStateOf(false) }
     val advancedRotationAngle by animateFloatAsState(
         targetValue = if (showAdvancedOptions) 180f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = ""
+        animationSpec = spring(stiffness = Spring.StiffnessMedium), label = ""
     )
 
     val folderPickerLauncher =
@@ -153,12 +144,12 @@ fun GopFileScreen(context: Context) {
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        // --- SOURCE FOLDERS MENU ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)
+                .statusBarsPadding()
+                .padding(bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             val headerShape =
                 if (sourceFolderUris.isEmpty()) RoundedCornerShape(16.dp) else RoundedCornerShape(
@@ -167,32 +158,24 @@ fun GopFileScreen(context: Context) {
                     bottomStart = 4.dp,
                     bottomEnd = 4.dp
                 )
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (isDark) Color(0xFF3B4665) else Color(0xFFDAE2FF), headerShape)
+                    .background(Color(0xFFDAE2FF), headerShape)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Source folders (${sourceFolderUris.size})",
+                    "Source folders (${sourceFolderUris.size})",
                     fontWeight = FontWeight.Medium,
-                    color = if (isDark) Color(0xFFDAE2FF) else Color(0xFF3B4665),
+                    color = Color(0xFF3B4665),
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(
                     onClick = { folderPickerLauncher.launch(null) },
                     modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        "Add Folder",
-                        tint = if (isDark) Color(0xFFDAE2FF) else Color(0xFF3B4665)
-                    )
-                }
+                ) { Icon(Icons.Default.Add, "Add Folder", tint = Color(0xFF3B4665)) }
             }
-
             sourceFolderUris.forEachIndexed { index, uri ->
                 val itemShape = if (index == sourceFolderUris.lastIndex) RoundedCornerShape(
                     topStart = 4.dp,
@@ -203,52 +186,42 @@ fun GopFileScreen(context: Context) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(if (isDark) Color(0xFF3B4665) else Color(0xFFDAE2FF), itemShape)
+                        .background(Color(0xFFDAE2FF), itemShape)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.Folder,
-                        null,
-                        tint = if (isDark) Color(0xFF578EDE) else Color(0xFF4285F4)
-                    )
+                    Icon(Icons.Default.Folder, null, tint = Color(0xFF4285F4))
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = DocumentFile.fromTreeUri(context, uri)?.name ?: "Unknown",
+                        DocumentFile.fromTreeUri(context, uri)?.name ?: "Unknown",
                         modifier = Modifier.weight(1f),
-                        color = if (isDark) Color(0xFFDDE3EE) else Color(0xFF161C24)
+                        color = Color(0xFF161C24)
                     )
-                    IconButton(
-                        onClick = {
-                            sourceFolderUris = sourceFolderUris - uri
-                            sharedPref.edit().putStringSet(
-                                "SOURCE_URIS",
-                                sourceFolderUris.map { it.toString() }.toSet()
-                            ).apply()
-                        },
-                        modifier = Modifier.size(36.dp)
-                    ) {
+                    IconButton(onClick = {
+                        sourceFolderUris = sourceFolderUris - uri; sharedPref.edit()
+                        .putStringSet("SOURCE_URIS", sourceFolderUris.map { it.toString() }.toSet())
+                        .apply()
+                    }, modifier = Modifier.size(36.dp)) {
                         Icon(
                             Icons.Default.Delete,
                             "Delete Folder",
-                            tint = if (isDark) Color(0xFFE57373) else Color(0xFFDB4437)
+                            tint = Color(0xFFDB4437)
                         )
                     }
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
-
-        // --- TARGET FILE DISPLAY ---
         if (destinationFileUri == null) {
-            Button(
-                onClick = { filePickerLauncher.launch(arrayOf("text/plain")) },
-            ) { Text("Select Target .txt", fontWeight = FontWeight.Medium) }
+            Button(onClick = { filePickerLauncher.launch(arrayOf("text/plain")) }) {
+                Text(
+                    "Select Target .txt",
+                    fontWeight = FontWeight.Medium
+                )
+            }
         } else {
             val fileName =
                 DocumentFile.fromSingleUri(context, destinationFileUri!!)?.name ?: "Unknown"
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -268,42 +241,41 @@ fun GopFileScreen(context: Context) {
                                 bottomEnd = 6.dp
                             )
                         )
-                        .background(if (isDark) Color(0xFF004880) else Color(0xFFD2E4FF))
+                        .background(Color(0xFFD2E4FF))
                         .clickable { filePickerLauncher.launch(arrayOf("text/plain")) }
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         Icons.Default.Description,
                         null,
-                        tint = if (isDark) Color(0xFF578EDE) else Color(0xFF4285F4),
+                        tint = Color(0xFF4285F4),
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .offset(y = (-3).dp), verticalArrangement = Arrangement.Center
+                            .offset(y = (-3).dp),
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             "Target File",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (isDark) Color(0xFFDAE2FF) else Color(0xFF3B4665),
+                            color = Color(0xFF3B4665),
                             modifier = Modifier.offset(y = 3.dp)
                         )
                         Text(
                             fileName,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (isDark) Color(0xFFD2E4FF) else Color(0xFF001C38),
+                            color = Color(0xFF001C38),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.offset(y = (-2).dp)
                         )
                     }
                 }
-
                 Box(
                     modifier = Modifier
                         .width(52.dp)
@@ -316,14 +288,15 @@ fun GopFileScreen(context: Context) {
                                 bottomEnd = 26.dp
                             )
                         )
-                        .background(if (isDark) Color(0xFF424271) else Color(0xFFE2DFFF))
+                        .background(Color(0xFFE2DFFF))
                         .clickable {
                             val promptText =
                                 "dựa vào thông tin sau để suy ngẫm, liên kết, và trả lời câu hỏi sau:\n"
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_STREAM, destinationFileUri)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                type = "text/plain"; putExtra(
+                                Intent.EXTRA_STREAM,
+                                destinationFileUri
+                            ); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
                             context.startActivity(
                                 Intent.createChooser(
@@ -335,13 +308,12 @@ fun GopFileScreen(context: Context) {
                                 delay(1000); clipboardManager.setText(
                                 buildAnnotatedString { append(promptText) })
                             }
-                        },
-                    contentAlignment = Alignment.Center
+                        }, contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Share,
                         "Share",
-                        tint = if (isDark) Color(0xFFE2DFFF) else Color(0xFF424271),
+                        tint = Color(0xFF424271),
                         modifier = Modifier
                             .size(20.dp)
                             .offset(x = (-3).dp)
@@ -349,15 +321,12 @@ fun GopFileScreen(context: Context) {
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-
-        // --- ADVANCED OPTIONS ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(if (isDark) Color(0xFF1A2028) else Color(0xFFE9EEFA))
+                .background(Color(0xFFE9EEFA))
                 .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMedium))
         ) {
             Row(
@@ -369,19 +338,18 @@ fun GopFileScreen(context: Context) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Advanced Options",
+                    "Advanced Options",
                     fontWeight = FontWeight.Medium,
-                    color = if (isDark) Color(0xFFA1C9FF) else Color(0xFF0060A7),
+                    color = Color(0xFF0060A7),
                     fontSize = 15.sp
                 )
                 Icon(
                     Icons.Default.KeyboardArrowDown,
                     "Toggle",
-                    tint = if (isDark) Color(0xFFA1C9FF) else Color(0xFF0060A7),
+                    tint = Color(0xFF0060A7),
                     modifier = Modifier.rotate(advancedRotationAngle)
                 )
             }
-
             if (showAdvancedOptions) {
                 Column(
                     modifier = Modifier
@@ -418,7 +386,7 @@ fun GopFileScreen(context: Context) {
                     ) {
                         Text(
                             "Include Properties",
-                            color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753),
+                            color = Color(0xFF404753),
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp
                         )
@@ -438,7 +406,7 @@ fun GopFileScreen(context: Context) {
                     ) {
                         Text(
                             "Include File Path",
-                            color = if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753),
+                            color = Color(0xFF404753),
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp
                         )
@@ -454,26 +422,16 @@ fun GopFileScreen(context: Context) {
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(32.dp))
-
-        // --- NÚT MERGE FILES ---
         val isMergeEnabled =
             !isProcessing && sourceFolderUris.isNotEmpty() && destinationFileUri != null
-        val targetBtnColor =
-            if (isMergeEnabled) (if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7)) else (if (isDark) Color(
-                0xFF1A2028
-            ) else Color(0xFFE9EEFA))
-        val targetTextColor =
-            if (isMergeEnabled) (if (isDark) Color(0xFF00325A) else Color.White) else (if (isDark) Color(
-                0xFFBFC7D5
-            ) else Color(0xFF404753))
+        val targetBtnColor = if (isMergeEnabled) Color(0xFF0060A7) else Color(0xFFE9EEFA)
+        val targetTextColor = if (isMergeEnabled) Color.White else Color(0xFF404753)
         val animatedBtnColor by animateColorAsState(
             targetValue = targetBtnColor,
             animationSpec = tween(200),
             label = ""
         )
-
         Button(
             onClick = {
                 if (sourceFolderUris.isNotEmpty() && destinationFileUri != null) {
@@ -510,11 +468,11 @@ fun GopFileScreen(context: Context) {
                     modifier = Modifier.size(20.dp),
                     color = targetTextColor,
                     strokeWidth = 2.dp
-                )
-                Spacer(Modifier.width(12.dp))
+                ); Spacer(Modifier.width(12.dp))
             } else {
-                Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(20.dp)); Spacer(
+                    Modifier.width(8.dp)
+                )
             }
             Text(
                 if (isProcessing) "PROCESSING..." else "MERGE FILES",
@@ -523,49 +481,34 @@ fun GopFileScreen(context: Context) {
                 letterSpacing = 1.sp
             )
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-
-        // --- LOG/CONSOLE BOX ---
         if (statusMessage.isNotBlank()) {
-            val isScanning = statusMessage == "SCANNING"
+            val isScanning = statusMessage == "SCANNING";
             val isCounting = statusMessage == "COUNTING"
             val isProcessingStep = isScanning || isCounting
             val isSuccess = statusMessage.contains("SUCCESS", ignoreCase = true)
             val isError = statusMessage.contains("error", ignoreCase = true)
-
             val targetBgColor = when {
-                isProcessingStep -> if (isDark) Color(0xFF0E141C) else Color(0xFFF8F9FF)
-                isSuccess -> Color(0xFF1E8E3E).copy(
-                    alpha = 0.1f
-                )
-
-                isError -> Color(0xFFFFDAD6)
-                else -> if (isDark) Color(0xFF282A2F) else Color(0xFFE9EEFA)
+                isProcessingStep -> Color(0xFFF8F9FF); isSuccess -> Color(0xFF1E8E3E).copy(alpha = 0.1f); isError -> Color(
+                    0xFFFFDAD6
+                ); else -> Color(0xFFE9EEFA)
             }
             val targetBorderColor = when {
-                isProcessingStep -> if (isDark) Color(0xFF3B4665) else Color(0xFFDAE2FF)
-                isSuccess -> Color(0xFF1E8E3E).copy(alpha = 0.5f)
-                isError -> Color(0xFFFFB4AB).copy(
-                    alpha = 0.5f
-                )
-
-                else -> if (isDark) Color(0xFFBFC7D5) else Color(0xFF404753)
+                isProcessingStep -> Color(0xFFDAE2FF); isSuccess -> Color(0xFF1E8E3E).copy(alpha = 0.5f); isError -> Color(
+                    0xFFFFB4AB
+                ).copy(alpha = 0.5f); else -> Color(0xFF404753)
             }
             val targetIconTint = when {
-                isProcessingStep -> if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753)
-                isSuccess -> Color(0xFF1E8E3E)
-                isError -> if (isDark) Color(0xFFFFB4AB) else Color(0xFFBA1A1A)
-                else -> if (isDark) Color(0xFFC4C6D0) else Color(0xFF404753)
+                isProcessingStep -> Color(0xFF404753); isSuccess -> Color(0xFF1E8E3E); isError -> Color(
+                    0xFFBA1A1A
+                ); else -> Color(0xFF404753)
             }
-
-            val bgColor by animateColorAsState(targetValue = targetBgColor, label = "bg")
+            val bgColor by animateColorAsState(targetValue = targetBgColor, label = "bg");
             val borderColor by animateColorAsState(
                 targetValue = targetBorderColor,
                 label = "border"
-            )
+            );
             val iconTint by animateColorAsState(targetValue = targetIconTint, label = "icon")
-
             OutlinedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -578,47 +521,40 @@ fun GopFileScreen(context: Context) {
                     Column(
                         modifier = Modifier
                             .padding(16.dp)
-                            .fillMaxWidth(), verticalArrangement = Arrangement.Center
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (isScanning) CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
-                                color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7),
+                                color = Color(0xFF0060A7),
                                 strokeWidth = 2.dp
-                            )
-                            else Icon(
+                            ) else Icon(
                                 Icons.Default.CheckCircle,
                                 null,
                                 tint = Color(0xFF1E8E3E),
                                 modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                "Scan & merge",
-                                // Đã thay thế bằng màu có sẵn từ nửa đầu file
-                                color = if (isDark) Color(0xFFDDE3EE) else Color(0xFF161C24),
+                            ); Spacer(modifier = Modifier.width(12.dp)); Text(
+                            "Scan & merge",
+                            color = Color(0xFF161C24),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        }
+                        if (isCounting) {
+                            Spacer(modifier = Modifier.height(12.dp)); Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = Color(0xFF0060A7),
+                                    strokeWidth = 2.dp
+                                ); Spacer(modifier = Modifier.width(12.dp)); Text(
+                                "Counting token using API",
+                                color = Color(0xFF161C24),
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium
                             )
-                        }
-                        if (isCounting) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    color = if (isDark) Color(0xFFA4C8FF) else Color(0xFF0060A7),
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    "Counting token using API",
-                                    // Đã thay thế bằng màu có sẵn từ nửa đầu file
-                                    color = if (isDark) Color(0xFFDDE3EE) else Color(0xFF161C24),
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
                             }
                         }
                     }
@@ -628,40 +564,32 @@ fun GopFileScreen(context: Context) {
                     Row(
                         modifier = Modifier
                             .padding(16.dp)
-                            .fillMaxWidth(), verticalAlignment = Alignment.Top
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
                     ) {
                         Icon(
-                            imageVector = iconStatus,
-                            contentDescription = "Status",
+                            iconStatus,
+                            "Status",
                             tint = iconTint,
                             modifier = Modifier
                                 .size(22.dp)
                                 .offset(y = 2.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        ); Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = buildAnnotatedString {
-                                val parts = statusMessage.split("*")
-                                parts.forEachIndexed { index, part ->
-                                    if (index % 2 == 1) {
-                                        withStyle(
-                                            SpanStyle(
-                                                fontWeight = FontWeight.Medium,
-                                                color = if (isDark) Color(0xFFA4C8FF) else Color(
-                                                    0xFF0060A7
-                                                )
-                                            )
-                                        ) { append(part) }
-                                    } else {
-                                        withStyle(
-                                            SpanStyle(
-                                                color = if (isDark) Color(0xFFC4C6D0) else Color(
-                                                    0xFF404753
-                                                )
-                                            )
-                                        ) { append(part) }
-                                    }
+                            buildAnnotatedString {
+                                val parts =
+                                    statusMessage.split("*"); parts.forEachIndexed { index, part ->
+                                if (index % 2 == 1) withStyle(
+                                    SpanStyle(
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF0060A7)
+                                    )
+                                ) { append(part) } else withStyle(SpanStyle(color = Color(0xFF404753))) {
+                                    append(
+                                        part
+                                    )
                                 }
+                            }
                             },
                             fontFamily = FontFamily.Monospace,
                             fontSize = 13.sp,
@@ -676,6 +604,8 @@ fun GopFileScreen(context: Context) {
     }
 }
 
+// Giữ nguyên các hàm data class MergeResult, processMultipleFolders, traverseAndMerge ở dưới ...
+// (Vì không có sửa đổi gì ở logic gộp file)
 data class MergeResult(val fileCount: Int, val estimatedTokens: Int)
 
 suspend fun processMultipleFolders(
@@ -689,65 +619,61 @@ suspend fun processMultipleFolders(
 ): String {
     return withContext(Dispatchers.IO) {
         try {
-            onProgressUpdate("SCANNING")
-
-            val resolver = context.contentResolver
-            var totalFileCount = 0
-            var totalEstimatedTokens = 0
-
-            resolver.openOutputStream(destUri, "wt")?.bufferedWriter()?.use { writer ->
-                for (uri in sourceUris) {
-                    val rootDir = DocumentFile.fromTreeUri(context, uri)
-                    if (rootDir != null) {
-                        val rootFolderName = rootDir.name ?: "Vault"
-                        val result = traverseAndMerge(
-                            rootDir,
-                            resolver,
-                            writer,
-                            includeProps,
-                            includePath,
-                            rootFolderName
-                        )
-                        totalFileCount += result.fileCount
-                        totalEstimatedTokens += result.estimatedTokens
+            onProgressUpdate("SCANNING");
+            val resolver = context.contentResolver;
+            var totalFileCount = 0;
+            var totalEstimatedTokens = 0; resolver.openOutputStream(destUri, "wt")?.bufferedWriter()
+                ?.use { writer ->
+                    for (uri in sourceUris) {
+                        val rootDir = DocumentFile.fromTreeUri(context, uri); if (rootDir != null) {
+                            val rootFolderName = rootDir.name ?: "Vault";
+                            val result = traverseAndMerge(
+                                rootDir,
+                                resolver,
+                                writer,
+                                includeProps,
+                                includePath,
+                                rootFolderName
+                            ); totalFileCount += result.fileCount; totalEstimatedTokens += result.estimatedTokens
+                        }
                     }
-                }
-            }
-
+                };
             val mergedText =
-                resolver.openInputStream(destUri)?.bufferedReader()?.use { it.readText() } ?: ""
-
-            val historyDir = File(context.filesDir, "merged_history")
-            if (!historyDir.exists()) historyDir.mkdirs()
-
-            val timestamp = System.currentTimeMillis()
+                resolver.openInputStream(destUri)?.bufferedReader()?.use { it.readText() } ?: "";
+            val historyDir = File(
+                context.filesDir,
+                "merged_history"
+            ); if (!historyDir.exists()) historyDir.mkdirs();
+            val timestamp = System.currentTimeMillis();
             val generatedName = sourceUris.mapNotNull { uri ->
-                DocumentFile.fromTreeUri(context, uri)?.name?.take(2)
-            }.joinToString("+") + ".txt"
-
-            val internalFile = File(historyDir, "${generatedName}_$timestamp.txt")
-            internalFile.writeText(mergedText)
-            val internalUri = Uri.fromFile(internalFile).toString()
-
-            val removedUris =
-                ChatManager.saveMergedHistory(context, internalUri, generatedName, timestamp)
-            removedUris.forEach { uriString ->
+                DocumentFile.fromTreeUri(
+                    context,
+                    uri
+                )?.name?.take(2)
+            }.joinToString("+") + ".txt";
+            val internalFile =
+                File(historyDir, "${generatedName}_$timestamp.txt"); internalFile.writeText(
+                mergedText
+            );
+            val internalUri = Uri.fromFile(internalFile).toString();
+            val removedUris = ChatManager.saveMergedHistory(
+                context,
+                internalUri,
+                generatedName,
+                timestamp
+            ); removedUris.forEach { uriString ->
                 try {
-                    val file = File(Uri.parse(uriString).path!!)
-                    if (file.exists()) file.delete()
+                    val file = File(Uri.parse(uriString).path!!); if (file.exists()) file.delete()
                 } catch (e: Exception) {
                 }
-            }
-
-            if (apiKey.isNotBlank()) {
-                onProgressUpdate("COUNTING")
-                try {
+            }; if (apiKey.isNotBlank()) {
+                onProgressUpdate("COUNTING"); try {
                     val generativeModel = com.google.ai.client.generativeai.GenerativeModel(
                         modelName = "gemini-3.1-flash-lite-preview",
                         apiKey = apiKey
-                    )
-                    val exactTokens = generativeModel.countTokens(mergedText).totalTokens
-                    return@withContext "SUCCESS!\nMerged *$totalFileCount* files.\nExact Tokens: *${
+                    );
+                    val exactTokens =
+                        generativeModel.countTokens(mergedText).totalTokens; return@withContext "SUCCESS!\nMerged *$totalFileCount* files.\nExact Tokens: *${
                         String.format(
                             "%,d",
                             exactTokens
@@ -778,53 +704,49 @@ fun traverseAndMerge(
     includePath: Boolean,
     currentPath: String
 ): MergeResult {
-    var count = 0
-    var fileTokens = 0
-    fun estimateTokensForString(text: String): Int {
-        if (text.isEmpty()) return 0
-        return (text.split(Regex("\\s+")).size * 1.3 + text.count { !it.isLetterOrDigit() && !it.isWhitespace() } * 0.8).toInt()
-    }
-    dir.listFiles().forEach { file ->
+    var count = 0;
+    var fileTokens = 0; fun estimateTokensForString(text: String): Int {
+        if (text.isEmpty()) return 0; return (text.split(Regex("\\s+")).size * 1.3 + text.count { !it.isLetterOrDigit() && !it.isWhitespace() } * 0.8).toInt()
+    }; dir.listFiles().forEach { file ->
         if (file.isDirectory) {
-            val folderName = file.name ?: ""
-            val nextPath = if (currentPath.isEmpty()) folderName else "$currentPath/$folderName"
-            val result =
-                traverseAndMerge(file, resolver, writer, includeProps, includePath, nextPath)
-            count += result.fileCount
-            fileTokens += result.estimatedTokens
+            val folderName = file.name ?: "";
+            val nextPath = if (currentPath.isEmpty()) folderName else "$currentPath/$folderName";
+            val result = traverseAndMerge(
+                file,
+                resolver,
+                writer,
+                includeProps,
+                includePath,
+                nextPath
+            ); count += result.fileCount; fileTokens += result.estimatedTokens
         } else {
-            val fileName = file.name ?: ""
-            if (fileName.endsWith(".md", ignoreCase = true) || fileName.endsWith(
-                    ".txt",
+            val fileName = file.name ?: ""; if (fileName.endsWith(
+                    ".md",
                     ignoreCase = true
-                )
+                ) || fileName.endsWith(".txt", ignoreCase = true)
             ) {
                 try {
-                    val displayPath = if (includePath) "$currentPath/$fileName" else fileName
-                    writer.write("=== BEGIN DOCUMENT: $displayPath ===\n")
-                    fileTokens += estimateTokensForString("=== BEGIN DOCUMENT: $displayPath ===\n")
-                    resolver.openInputStream(file.uri)?.bufferedReader()?.use { reader ->
-                        var content = reader.readText()
-                        if (!includeProps && content.startsWith("---")) {
-                            val secondDashIndex = content.indexOf("\n---", 3)
-                            if (secondDashIndex != -1) {
-                                val endOfPropsLine = content.indexOf('\n', secondDashIndex + 1)
-                                content =
-                                    if (endOfPropsLine != -1) content.substring(endOfPropsLine + 1)
-                                        .trimStart() else ""
-                            }
+                    val displayPath =
+                        if (includePath) "$currentPath/$fileName" else fileName; writer.write("=== BEGIN DOCUMENT: $displayPath ===\n"); fileTokens += estimateTokensForString(
+                        "=== BEGIN DOCUMENT: $displayPath ===\n"
+                    ); resolver.openInputStream(file.uri)?.bufferedReader()?.use { reader ->
+                        var content =
+                            reader.readText(); if (!includeProps && content.startsWith("---")) {
+                        val secondDashIndex =
+                            content.indexOf("\n---", 3); if (secondDashIndex != -1) {
+                            val endOfPropsLine =
+                                content.indexOf('\n', secondDashIndex + 1); content =
+                                if (endOfPropsLine != -1) content.substring(endOfPropsLine + 1)
+                                    .trimStart() else ""
                         }
-                        writer.write(content)
-                        fileTokens += estimateTokensForString(content)
-                    }
-                    writer.write("\n=== END DOCUMENT ===\n\n")
-                    fileTokens += estimateTokensForString("\n=== END DOCUMENT ===\n\n")
-                    count++
+                    }; writer.write(content); fileTokens += estimateTokensForString(content)
+                    }; writer.write("\n=== END DOCUMENT ===\n\n"); fileTokens += estimateTokensForString(
+                        "\n=== END DOCUMENT ===\n\n"
+                    ); count++
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
         }
-    }
-    return MergeResult(count, fileTokens)
+    }; return MergeResult(count, fileTokens)
 }
