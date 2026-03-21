@@ -13,8 +13,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -23,7 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable // <--- Import quan trọng để lưu trạng thái qua các Tab
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,7 +54,13 @@ fun ChatScreen(
     onInputChanged: (String) -> Unit,
     triggerSend: Long,
     triggerAttach: Long,
-    onOverlayChange: (Boolean) -> Unit
+    onOverlayChange: (Boolean) -> Unit,
+    currentTokenCount: Int,
+    isCountingTokens: Boolean,
+    onTokenCountChange: (Int) -> Unit,
+    onCountingTokensChange: (Boolean) -> Unit,
+    pendingAttachments: List<Attachment>,
+    onPendingAttachmentsChange: (List<Attachment>) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -70,7 +74,6 @@ fun ChatScreen(
 
     var isThinking by remember { mutableStateOf(false) }
 
-    var pendingAttachments by remember { mutableStateOf(listOf<Attachment>()) }
     var showAttachmentSheet by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
@@ -79,10 +82,6 @@ fun ChatScreen(
     var showRenameDialog by remember { mutableStateOf(false) }
     var newTitleName by remember { mutableStateOf("") }
 
-    var currentTokenCount by remember { mutableStateOf(0) }
-    var isCountingTokens by remember { mutableStateOf(false) }
-
-    // THÊM 2 BIẾN NÀY ĐỂ GHI NHỚ LẦN BẤM CUỐI CÙNG (Sống sót qua quá trình đổi Tab)
     var lastHandledAttach by rememberSaveable { mutableStateOf(0L) }
     var lastHandledSend by rememberSaveable { mutableStateOf(0L) }
 
@@ -102,7 +101,7 @@ fun ChatScreen(
                 val name = doc?.name ?: "Unknown File"
                 val type = context.contentResolver.getType(it) ?: ""
                 val isImg = type.startsWith("image/")
-                pendingAttachments = pendingAttachments + Attachment(it.toString(), name, isImg)
+                onPendingAttachmentsChange(pendingAttachments + Attachment(it.toString(), name, isImg))
                 coroutineScope.launch { showAttachmentSheet = false }
             } catch (e: Exception) { e.printStackTrace() }
         }
@@ -115,19 +114,17 @@ fun ChatScreen(
         }
     }
 
-    // FIX LỖI TỰ MỞ SHEET KHI CHUYỂN TAB
     LaunchedEffect(triggerAttach) {
         if (triggerAttach > 0L && triggerAttach != lastHandledAttach) {
-            lastHandledAttach = triggerAttach // Cập nhật lại mốc thời gian đã xử lý
+            lastHandledAttach = triggerAttach
             keyboardController?.hide()
             showAttachmentSheet = true
         }
     }
 
-    // FIX LỖI (DỰ PHÒNG) CHO NÚT SEND KHI CHUYỂN TAB
     LaunchedEffect(triggerSend) {
         if (triggerSend > 0L && triggerSend != lastHandledSend && inputText.isNotBlank() && !isThinking) {
-            lastHandledSend = triggerSend // Cập nhật lại mốc thời gian đã xử lý
+            lastHandledSend = triggerSend
             keyboardController?.hide()
 
             val question = inputText
@@ -136,7 +133,7 @@ fun ChatScreen(
 
             val attachmentsToSend = if (pendingAttachments.isNotEmpty()) pendingAttachments.toList()
             else currentSession.messages.firstOrNull { it.attachments.isNotEmpty() }?.attachments ?: emptyList()
-            pendingAttachments = emptyList()
+            onPendingAttachmentsChange(emptyList())
 
             var newTitle = currentSession.title
             if (currentSession.messages.isEmpty()) newTitle = if (question.length > 25) question.take(25) + "..." else question
@@ -174,7 +171,7 @@ fun ChatScreen(
 
     LaunchedEffect(inputText, pendingAttachments) {
         if (apiKey.isNotBlank() && destUriString != null) {
-            isCountingTokens = true
+            onCountingTokensChange(true)
             delay(800)
             val attachmentsToCount = if (pendingAttachments.isNotEmpty()) pendingAttachments.toList() else currentSession.messages.firstOrNull { it.attachments.isNotEmpty() }?.attachments ?: emptyList()
             val mockQuestion = if (inputText.isNotBlank()) inputText else "..."
@@ -182,8 +179,8 @@ fun ChatScreen(
             val contextWindow = mockHistory.takeLast(5).joinToString("\n") { if (it.isUser) "User: ${it.text}" else "Himmel: ${it.text}" }
             val promptToCount = "[NGỮ CẢNH]\n$contextWindow\n[YÊU CẦU]\nCâu hỏi: $mockQuestion"
             val count = GeminiService.countRequestTokens(context, Uri.parse(destUriString), apiKey, promptToCount, attachmentsToCount)
-            currentTokenCount = count
-            isCountingTokens = false
+            onTokenCountChange(count)
+            onCountingTokensChange(false)
         }
     }
 
@@ -295,28 +292,6 @@ fun ChatScreen(
                             }
                         }
                     }
-
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, bottom = 120.dp)
-                    ) {
-                        if (pendingAttachments.isNotEmpty()) {
-                            LazyRow(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(pendingAttachments) { att ->
-                                    Row(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFFD2E4FF)).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(if (att.isImage) Icons.Default.Image else Icons.Default.InsertDriveFile, null, tint = Color(0xFF4285F4), modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(att.name, fontSize = 12.sp, color = Color(0xFF0060A7), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 100.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Icon(Icons.Default.Close, "Remove", tint = Color(0xFF404753), modifier = Modifier.size(16.dp).clickable { pendingAttachments = pendingAttachments.filter { it != att } })
-                                    }
-                                }
-                            }
-                        }
-                        Text(text = if (isCountingTokens) "Calculating tokens..." else if (currentTokenCount > 0) "Tokens req: ~${String.format("%,d", currentTokenCount)}" else "", fontSize = 11.sp, color = Color(0xFF404753), modifier = Modifier.padding(start = 8.dp))
-                    }
                 }
             }
         }
@@ -335,7 +310,7 @@ fun ChatScreen(
                 val historyFiles = ChatManager.getMergedHistory(context)
                 if (historyFiles.isNotEmpty()) {
                     historyFiles.forEach { file ->
-                        Row(modifier = Modifier.fillMaxWidth().clickable { pendingAttachments = pendingAttachments + file; coroutineScope.launch { showAttachmentSheet = false } }.padding(horizontal = 24.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier.fillMaxWidth().clickable { onPendingAttachmentsChange(pendingAttachments + file); coroutineScope.launch { showAttachmentSheet = false } }.padding(horizontal = 24.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Description, null, tint = Color(0xFF4285F4), modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(file.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF404753), modifier = Modifier.weight(1f))
