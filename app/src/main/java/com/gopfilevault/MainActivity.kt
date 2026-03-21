@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -21,6 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -42,9 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -201,18 +203,19 @@ fun FloatingPill(
     }
     val prevState = stateTracker[0]
 
-    // ÁP DỤNG DAMPING CHÍNH XÁC NHƯ YÊU CẦU
     val dynamicDamping = when {
-        state == 1 && prevState == 3 -> 0.8f   // Từ State 3 về 2 tab đầu
-        state == 1 && prevState == 2 -> 0.75f  // Từ State 2 về 2 tab đầu
-        state == 3 && prevState == 1 -> 0.7f   // Từ State 1 sang State 3
-        else -> 0.6f                           // Các trường hợp khác
+        state == 1 && prevState == 3 -> 0.8f
+        state == 1 && prevState == 2 -> 0.75f
+        state == 3 && prevState == 1 -> 0.7f
+        else -> 0.6f
     }
 
     val dpAnimSpec = spring<androidx.compose.ui.unit.Dp>(dampingRatio = dynamicDamping, stiffness = Spring.StiffnessLow)
     val floatAnimSpec = spring<Float>(dampingRatio = dynamicDamping, stiffness = Spring.StiffnessLow)
     val colorAnimSpec = spring<Color>(dampingRatio = dynamicDamping, stiffness = Spring.StiffnessLow)
-    val sizeAnimSpec = spring<IntSize>(dampingRatio = dynamicDamping, stiffness = Spring.StiffnessLow)
+
+    // Spec tween 200 cho plus và send icons
+    val tween200Spec = tween<Float>(200)
 
     val pillSquashHeight = remember { Animatable(64f) }
     val pillExtraWidth = remember { Animatable(0f) }
@@ -227,20 +230,19 @@ fun FloatingPill(
         animationSpec = dpAnimSpec,
         label = "textOffsetX"
     )
-    // SQUASH & STRETCH ANIMATION CHO STATE 2 <-> 3
+
     LaunchedEffect(state) {
         if (isInitialStateChange) {
             isInitialStateChange = false
         } else {
-            // Nảy nút Send khi vừa sang State 3
             if (state == 3 && prevState != 3) {
                 launch {
                     sendScale.snapTo(1.5f)
-                    sendScale.animateTo(1f, spring(stiffness = Spring.StiffnessLow, dampingRatio = 0.35f))
+                    // Đã thay spring thành tween 200
+                    sendScale.animateTo(1f, tween(200))
                 }
             }
 
-            // Pill đàn hồi khi gõ/xóa phím (State 2 <-> State 3)
             if ((prevState == 2 && state == 3) || (prevState == 3 && state == 2)) {
                 launch {
                     pillSquashHeight.animateTo(60f, tween(100))
@@ -256,7 +258,6 @@ fun FloatingPill(
 
     var isInitialPageSwitch by remember { mutableStateOf(true) }
 
-    // SQUASH & STRETCH ANIMATION CHO CHUYỂN TAB (CurrentPage)
     LaunchedEffect(currentPage) {
         if (isInitialPageSwitch) {
             isInitialPageSwitch = false
@@ -342,24 +343,30 @@ fun FloatingPill(
     val icon3Alpha by animateFloatAsState(if (state == 1) 1f else 0f, floatAnimSpec, label = "")
     val icon3Scale by animateFloatAsState(if (state == 1) 1f else 0.4f, floatAnimSpec, label = "")
 
-    val plusAlpha by animateFloatAsState(if (state >= 2) 1f else 0f, floatAnimSpec, label = "")
-    val plusScale by animateFloatAsState(if (state >= 2) 1f else 0.4f, floatAnimSpec, label = "")
+    // Đã thay thế floatAnimSpec thành tween200Spec
+    val plusAlpha by animateFloatAsState(if (state >= 2) 1f else 0f, tween200Spec, label = "")
+    val plusScale by animateFloatAsState(if (state >= 2) 1f else 0.4f, tween200Spec, label = "")
 
-    val sendAlpha by animateFloatAsState(if (state == 3) 1f else 0f, floatAnimSpec, label = "")
-    val sendBtnScale by animateFloatAsState(if (state == 3) 1f else 0.4f, floatAnimSpec, label = "")
+    val sendAlpha by animateFloatAsState(if (state == 3) 1f else 0f, tween200Spec, label = "")
+    val sendBtnScale by animateFloatAsState(if (state == 3) 1f else 0.4f, tween200Spec, label = "")
 
-    val textPadStart by animateDpAsState(if (state >= 2) 48.dp else 16.dp, dpAnimSpec, label = "")
-    val textPadEnd by animateDpAsState(if (state == 3) 48.dp else 16.dp, dpAnimSpec, label = "")
+    val density = LocalDensity.current
 
     Box(
         modifier = modifier
             .offset(y = ((pillSquashHeight.value - 64f) / 2).dp)
-            .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(32.dp),
-                spotColor = Color(0x22000000),
-                ambientColor = Color(0x11000000)
-            )
+            .dropShadow(shape = RoundedCornerShape(32.dp)) {
+                alpha = 0.15f
+                offset = Offset(0f, with(density) { 1.dp.toPx() })
+                radius = with(density) { 3.dp.toPx() }
+                spread = 0f
+            }
+            .dropShadow(shape = RoundedCornerShape(32.dp)) {
+                alpha = 0.075f
+                offset = Offset(0f, with(density) { 4.dp.toPx() })
+                radius = with(density) { 8.dp.toPx() }
+                spread = with(density) { 3.dp.toPx() }
+            }
             .width(pillWidth)
             .height(pillSquashHeight.value.dp + animatedExtraHeight)
             .background(PillBgColor, RoundedCornerShape(32.dp))
@@ -385,24 +392,22 @@ fun FloatingPill(
                     .offset(x = finalTiCenterOffset)
                     .width(currentTiWidth)
                     .height(tiHeight)
-                    .clip(RoundedCornerShape(24.dp)), // Mask cắt đã thêm ở bước trước
-
-                // 1. ĐỔI TỌA ĐỘ GỐC CỦA TI BOX SANG TÂM:
+                    .clip(RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.TopCenter
             ) {
                 AnimatedVisibility(
                     visible = state > 1,
-                    enter = fadeIn(tween(300)) + scaleIn(
+                    // Đã thay spring/tween(300) thành tween(200) cho Text Input
+                    enter = fadeIn(tween(200)) + scaleIn(
                         initialScale = 0.7f,
-                        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy)
+                        animationSpec = tween(200)
                     ),
-                    exit = fadeOut(tween(300)) + scaleOut(
+                    exit = fadeOut(tween(200)) + scaleOut(
                         targetScale = 0.7f,
-                        animationSpec = spring(stiffness = Spring.StiffnessLow)
+                        animationSpec = tween(200)
                     ),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // 2. ĐỔI TỌA ĐỘ GỐC CỦA BOX CHỨA TEXT SANG TÂM:
                     Box(contentAlignment = Alignment.TopCenter, modifier = Modifier.fillMaxSize()) {
                         BasicTextField(
                             value = inputText,
@@ -412,8 +417,6 @@ fun FloatingPill(
                             },
                             modifier = Modifier
                                 .offset(x = textOffsetX)
-                                // 3. XÓA BỎ HOÀN TOÀN offset(x = 48.dp)
-                                // Text sẽ tự động căn giữa khung TI, chiếm trọn 212dp ở giữa
                                 .requiredWidth(212.dp)
                                 .wrapContentHeight(align = Alignment.Top, unbounded = true)
                                 .padding(top = 14.dp, bottom = 14.dp),
@@ -501,7 +504,6 @@ fun FloatingPill(
                 Icon(Icons.Default.AutoAwesome, null, tint = icon3Color, modifier = Modifier.size(20.dp))
             }
 
-            // --- NÚT PLUS ---
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -522,7 +524,6 @@ fun FloatingPill(
                 )
             }
 
-            // --- NÚT SEND ---
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
